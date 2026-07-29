@@ -10,12 +10,14 @@
         body { background: #0a0412; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
         #matrix-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.35; pointer-events: none; }
 
+        /* Auth Screen */
         #auth-screen { z-index: 10; background: rgba(18, 8, 33, 0.95); padding: 30px 20px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; border: 1px solid #b15eff; box-shadow: 0 0 25px rgba(177, 94, 255, 0.35); }
         #auth-screen input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; font-size: 16px; }
         .remember-box { display: flex; align-items: center; gap: 8px; font-size: 0.85em; color: #b15eff; margin: 8px 0; justify-content: start; }
         #auth-screen button { width: 48%; padding: 12px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; transition: 0.2s; font-size: 15px; }
         #auth-screen button:hover { background: #ff5ed1; color: #000; box-shadow: 0 0 15px #ff5ed1; }
 
+        /* Main Chat Screen */
         #chat-screen { display: none; z-index: 10; width: 95%; max-width: 1000px; height: 90vh; height: 90dvh; background: rgba(15, 6, 28, 0.92); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 35px rgba(255, 94, 209, 0.25); position: relative; }
         #sidebar { width: 320px; background: rgba(22, 10, 40, 0.95); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 20; }
         .brand-logo { font-size: 1.4em; font-weight: 900; letter-spacing: 2px; text-align: center; border-bottom: 1px dashed #b15eff; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -43,6 +45,7 @@
 
         .msg-images-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-top: 8px; max-width: 380px; }
         .chat-img-thumb { width: 100%; height: 110px; object-fit: cover; border-radius: 6px; border: 1px solid #b15eff; cursor: pointer; transition: transform 0.2s; }
+        .chat-img-thumb:hover { transform: scale(1.03); }
 
         #img-preview-bar { display: none; padding: 8px; background: rgba(22, 10, 40, 0.95); border-top: 1px solid #3c125d; gap: 8px; overflow-x: auto; }
         .preview-thumb-box { position: relative; width: 60px; height: 60px; flex-shrink: 0; }
@@ -97,8 +100,8 @@
 <body>
     <canvas id="matrix-bg"></canvas>
 
-    <!-- Hidden Remote Audio Playback Target -->
-    <audio id="remote-audio" autoplay playsinline></audio>
+    <!-- Explicit Audio Tag for Call Sound -->
+    <audio id="remote-audio" autoplay playsinline style="display:none;"></audio>
 
     <!-- Auth Screen -->
     <div id="auth-screen">
@@ -225,7 +228,7 @@
     <script>
         const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b15eff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
-        // Canvas Matrix Animation
+        // Matrix Background
         const canvas = document.getElementById('matrix-bg');
         const ctx = canvas.getContext('2d');
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -274,6 +277,12 @@
                     const creds = JSON.parse(savedInfo);
                     socket.emit('authenticate', { username: creds.username, password: creds.password, action: 'login' });
                 } catch(e) {}
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !socket.connected) {
+                socket.connect();
             }
         });
 
@@ -382,12 +391,15 @@
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
+
                         if (width > maxWidth) {
                             height = Math.round((height * maxWidth) / width);
                             width = maxWidth;
                         }
+
                         canvas.width = width;
                         canvas.height = height;
+
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         resolve(canvas.toDataURL('image/jpeg', quality));
@@ -399,6 +411,7 @@
         async function handleImagesSelected(event) {
             const files = Array.from(event.target.files);
             if (!files.length) return;
+
             const compressed = await Promise.all(files.map(f => compressImage(f)));
             pendingImages.push(...compressed);
             renderImagePreviewBar();
@@ -412,6 +425,7 @@
                 bar.innerHTML = '';
                 return;
             }
+
             bar.style.display = 'flex';
             bar.innerHTML = pendingImages.map((imgSrc, idx) => `
                 <div class="preview-thumb-box">
@@ -492,7 +506,7 @@
             closeProfileModal();
         }
 
-        // --- FIXED WEBRTC ENGINE ---
+        // --- ENHANCED WEBRTC CALL ENGINE ---
         let peerConnection = null;
         let localStream = null;
         let callTargetUsername = null;
@@ -506,23 +520,23 @@
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
+                { urls: 'stun:stun3.l.google.com:19302' }
             ] 
         };
 
-        function prepareAudioPlayback() {
-            const remoteAudio = document.getElementById('remote-audio');
-            remoteAudio.muted = false;
-            remoteAudio.volume = 1.0;
-            remoteAudio.play().catch(() => {});
+        // Resume AudioContext if browser suspends autoplay
+        function unlockAudioContext() {
+            const audioEl = document.getElementById('remote-audio');
+            audioEl.muted = false;
+            audioEl.volume = 1.0;
+            audioEl.play().catch(err => console.log("User action needed to unblock audio autoplay:", err));
         }
 
-        async function getMediaStream(videoRequested) {
+        async function getLocalMediaStream(videoRequired) {
             try {
-                return await navigator.mediaDevices.getUserMedia({ audio: true, video: videoRequested });
+                return await navigator.mediaDevices.getUserMedia({ audio: true, video: videoRequired });
             } catch (err) {
-                if (videoRequested) {
+                if (videoRequired) {
                     return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 }
                 throw err;
@@ -530,14 +544,14 @@
         }
 
         async function startCall(targetUsername, targetDisplayName, targetAvatar, targetBio, video) {
-            prepareAudioPlayback();
+            unlockAudioContext();
             callTargetUsername = targetUsername;
             isVideoCall = video;
 
             openActiveCallUI(targetDisplayName, targetAvatar, targetBio, 'Calling...');
 
             try {
-                localStream = await getMediaStream(isVideoCall);
+                localStream = await getLocalMediaStream(isVideoCall);
                 
                 if (isVideoCall && localStream.getVideoTracks().length > 0) {
                     const localVid = document.getElementById('local-video');
@@ -553,7 +567,7 @@
 
                 socket.emit('call_user', { targetUsername, signalData: offer, isVideo: isVideoCall });
             } catch (err) {
-                alert("Microphone access is required to place a call.");
+                alert("Microphone/Camera permission denied or device error.");
                 closeCallUI();
             }
         }
@@ -571,7 +585,7 @@
         });
 
         async function acceptIncomingCall() {
-            prepareAudioPlayback();
+            unlockAudioContext();
             document.getElementById('incoming-modal').style.display = 'none';
 
             const callerName = document.getElementById('incoming-caller-name').innerText;
@@ -581,7 +595,7 @@
             openActiveCallUI(callerName, callerAvatar, callerBio, 'Connecting...');
 
             try {
-                localStream = await getMediaStream(isVideoCall);
+                localStream = await getLocalMediaStream(isVideoCall);
                 
                 if (isVideoCall && localStream.getVideoTracks().length > 0) {
                     const localVid = document.getElementById('local-video');
@@ -599,7 +613,7 @@
                 socket.emit('answer_call', { targetUsername: callTargetUsername, signalData: answer });
                 startTimer();
             } catch (err) {
-                alert("Microphone access is required to receive calls.");
+                alert("Microphone/Camera permission denied or device error.");
                 hangupCall();
             }
         }
@@ -617,17 +631,13 @@
             }
         });
 
-        socket.on('call_rejected', () => { alert('Call rejected.'); closeCallUI(); });
+        socket.on('call_rejected', () => { alert('Call declined.'); closeCallUI(); });
         socket.on('call_ended', () => { closeCallUI(); });
         socket.on('call_failed', (msg) => { alert(msg); closeCallUI(); });
 
-        socket.on('ice_candidate', async ({ candidate }) => {
+        socket.on('ice_candidate', ({ candidate }) => {
             if (peerConnection && candidate) {
-                try {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                } catch (e) {
-                    console.error('Error adding ICE candidate', e);
-                }
+                peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error(e));
             }
         });
 
@@ -641,18 +651,19 @@
             };
 
             peerConnection.ontrack = (event) => {
-                const remoteStream = event.streams[0];
+                const stream = event.streams[0];
                 
+                // Directly pipe audio track stream to remote-audio element
                 const remoteAudio = document.getElementById('remote-audio');
-                remoteAudio.srcObject = remoteStream;
+                remoteAudio.srcObject = stream;
                 remoteAudio.muted = false;
                 remoteAudio.volume = 1.0;
-                remoteAudio.play().catch(err => console.log('Audio playback error:', err));
+                remoteAudio.play().catch(err => console.log("Audio autoplay error:", err));
 
                 if (isVideoCall) {
                     const remoteVid = document.getElementById('remote-video');
-                    remoteVid.srcObject = remoteStream;
-                    remoteVid.play().catch(err => console.log('Video playback error:', err));
+                    remoteVid.srcObject = stream;
+                    remoteVid.play().catch(err => console.log("Video autoplay error:", err));
                 }
             };
         }
