@@ -6,7 +6,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Enable 50 MB buffer for socket payloads
+// Enable 50MB payload limit for Socket.IO image transfers
 const io = new Server(server, {
     maxHttpBufferSize: 5e7,
     cors: { origin: "*", methods: ["GET", "POST"] }
@@ -17,6 +17,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const users = {};
 const registeredUsers = {};
 
+// Default Owner Credentials
 registeredUsers['gw.akira'] = { password: 'Akira@ys7', role: 'RS FLAGS / OWNER' };
 
 io.on('connection', (socket) => {
@@ -51,14 +52,21 @@ io.on('connection', (socket) => {
         if (!user) return;
 
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
         io.emit('receive_message', {
+            msgId,
             username: user.username,
             role: user.role,
             text: data.text || '',
             images: data.images || [],
             time
         });
+    });
+
+    // Delete message for all connected clients
+    socket.on('delete_message', (msgId) => {
+        io.emit('message_deleted', msgId);
     });
 
     socket.on('kick_user', (targetUsername) => {

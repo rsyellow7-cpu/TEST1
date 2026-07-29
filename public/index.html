@@ -3,62 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RS FLAGS - Matrix</title>
+    <title>RS FLAGS - YS Edition</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: 'Consolas', 'Courier New', monospace; margin: 0; padding: 0; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', 'Consolas', sans-serif; margin: 0; padding: 0; }
         
-        body { background: #000; color: #00ff66; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: relative; }
+        body { background: #0a0412; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: relative; }
 
-        /* Matrix Canvas Background */
-        #matrix-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.25; pointer-events: none; }
+        /* YS Purple, Pink, White Rain Canvas */
+        #matrix-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.35; pointer-events: none; }
 
-        #auth-screen { z-index: 10; background: rgba(5, 20, 5, 0.95); padding: 30px; border-radius: 8px; width: 340px; text-align: center; border: 1px solid #00ff66; box-shadow: 0 0 20px #00ff6633; }
-        #auth-screen input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #00ff66; border-radius: 4px; background: #000; color: #00ff66; outline: none; }
-        #auth-screen button { width: 48%; padding: 10px; border: 1px solid #00ff66; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; background: #002b0e; color: #00ff66; text-shadow: 0 0 5px #00ff66; }
-        #auth-screen button:hover { background: #00ff66; color: #000; }
+        /* Login Screen */
+        #auth-screen { z-index: 10; background: rgba(18, 8, 33, 0.95); padding: 30px; border-radius: 12px; width: 340px; text-align: center; border: 1px solid #b15eff; box-shadow: 0 0 25px rgba(177, 94, 255, 0.35); }
+        #auth-screen input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; }
+        #auth-screen button { width: 48%; padding: 10px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; transition: 0.2s; }
+        #auth-screen button:hover { background: #ff5ed1; color: #000; box-shadow: 0 0 15px #ff5ed1; }
 
-        #chat-screen { display: none; z-index: 10; width: 90%; max-width: 950px; height: 85vh; background: rgba(2, 12, 2, 0.9); border: 1px solid #00ff66; border-radius: 8px; overflow: hidden; flex-direction: row; box-shadow: 0 0 30px rgba(0, 255, 102, 0.2); }
+        /* Chat Window */
+        #chat-screen { display: none; z-index: 10; width: 90%; max-width: 950px; height: 85vh; background: rgba(15, 6, 28, 0.92); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 35px rgba(255, 94, 209, 0.25); }
         
-        #sidebar { width: 260px; background: rgba(0, 20, 0, 0.8); border-right: 1px solid #005522; padding: 15px; display: flex; flex-direction: column; }
+        #sidebar { width: 260px; background: rgba(22, 10, 40, 0.85); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; }
         
         /* Logo Styling */
-        .brand-logo { font-size: 1.3em; font-weight: bold; color: #00ff66; text-shadow: 0 0 10px #00ff66; margin-bottom: 5px; text-align: center; border-bottom: 1px dashed #00ff66; padding-bottom: 10px; }
-        .brand-heart { color: #ff0055; text-shadow: 0 0 10px #ff0055; }
+        .brand-logo { font-size: 1.5em; font-weight: 900; letter-spacing: 2px; text-align: center; border-bottom: 1px dashed #b15eff; padding-bottom: 10px; margin-bottom: 5px; }
+        .logo-y { color: #b15eff; text-shadow: 0 0 12px #b15eff; }
+        .logo-s { color: #ff5ed1; text-shadow: 0 0 12px #ff5ed1; }
+        .brand-heart { color: #ffffff; text-shadow: 0 0 10px #ffffff; }
 
-        #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.7); }
+        #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 4, 18, 0.75); }
         
         #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         
-        .msg { background: rgba(0, 30, 10, 0.7); padding: 10px 14px; border-radius: 6px; border: 1px solid #008833; max-width: 80%; word-break: break-word; position: relative; }
-        .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; color: #00ff66; display: flex; justify-content: space-between; align-items: center; }
+        .msg { background: rgba(35, 14, 61, 0.75); padding: 10px 14px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 80%; word-break: break-word; position: relative; color: #ffffff; }
+        .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; color: #ff5ed1; display: flex; justify-content: space-between; align-items: center; }
         
-        .badge-owner { color: #ff0055; border: 1px solid #ff0055; padding: 1px 4px; border-radius: 4px; font-size: 0.75em; text-shadow: 0 0 5px #ff0055; }
+        .badge-owner { color: #ffffff; background: #ff2a85; border: 1px solid #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 0.7em; text-shadow: 0 0 5px #ffffff; }
 
-        /* Delete / Remove option */
-        .delete-btn { background: transparent; border: none; color: #ff4757; font-size: 0.75em; cursor: pointer; margin-left: 10px; opacity: 0.7; }
-        .delete-btn:hover { opacity: 1; text-decoration: underline; }
+        /* Message Delete Button */
+        .delete-btn { background: transparent; border: none; color: #ff5ed1; font-size: 0.75em; cursor: pointer; margin-left: 10px; opacity: 0.8; }
+        .delete-btn:hover { color: #ffffff; text-decoration: underline; text-shadow: 0 0 5px #ff5ed1; }
 
         .image-gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-        .img-card { display: flex; flex-direction: column; align-items: center; background: #001100; padding: 6px; border-radius: 6px; border: 1px solid #005522; }
-        .img-card img { max-width: 220px; max-height: 220px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #003311; }
-        .download-btn { color: #00ff66; font-size: 0.8em; margin-top: 6px; font-weight: bold; cursor: pointer; background: transparent; border: none; }
-        .download-btn:hover { text-decoration: underline; }
+        .img-card { display: flex; flex-direction: column; align-items: center; background: #120624; padding: 6px; border-radius: 8px; border: 1px solid #5a1b8e; }
+        .img-card img { max-width: 220px; max-height: 220px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid #b15eff; }
+        .download-btn { color: #ffffff; font-size: 0.8em; margin-top: 6px; font-weight: bold; cursor: pointer; background: transparent; border: none; }
+        .download-btn:hover { color: #ff5ed1; text-decoration: underline; }
 
-        .sys-msg { text-align: center; color: #008833; font-size: 0.85em; margin: 5px 0; text-shadow: 0 0 3px #005522; }
+        .sys-msg { text-align: center; color: #b15eff; font-size: 0.85em; margin: 5px 0; text-shadow: 0 0 5px #5a1b8e; }
         
-        #input-area { display: flex; padding: 15px; background: rgba(0, 20, 0, 0.9); gap: 10px; align-items: center; border-top: 1px solid #005522; }
-        #input-area input[type="text"] { flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #00ff66; background: #000; color: #00ff66; outline: none; }
-        #input-area button { background: #003311; border: 1px solid #00ff66; padding: 10px 18px; color: #00ff66; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        #input-area button:hover { background: #00ff66; color: #000; }
+        #input-area { display: flex; padding: 15px; background: rgba(22, 10, 40, 0.95); gap: 10px; align-items: center; border-top: 1px solid #3c125d; }
+        #input-area input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #b15eff; background: #0a0412; color: #ffffff; outline: none; }
+        #input-area button { background: #2a0845; border: 1px solid #ff5ed1; padding: 10px 18px; color: #ffffff; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        #input-area button:hover { background: #ff5ed1; color: #000; box-shadow: 0 0 10px #ff5ed1; }
 
-        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #003311; font-size: 0.9em; color: #00cc55; }
-        .kick-btn { background: #ff0055; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #2a0845; font-size: 0.9em; color: #ffffff; }
+        .kick-btn { background: #ff2a85; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; }
 
-        /* Custom Scrollbars */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #001100; }
-        ::-webkit-scrollbar-thumb { background: #00ff66; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: #0a0412; }
+        ::-webkit-scrollbar-thumb { background: #b15eff; border-radius: 3px; }
     </style>
 </head>
 <body>
@@ -66,63 +70,66 @@
     <canvas id="matrix-bg"></canvas>
 
     <div id="auth-screen">
-        <div class="brand-logo">YS <span class="brand-heart">♥</span> MATRIX</div>
-        <p style="font-size: 0.8em; color: #00aa44; margin: 10px 0 15px 0;">ACCESS PROTOCOL</p>
+        <div class="brand-logo"><span class="logo-y">Y</span><span class="logo-s">S</span> <span class="brand-heart">♥</span></div>
+        <p style="font-size: 0.8em; color: #b15eff; margin: 8px 0 15px 0;">RS FLAGS CHAT</p>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
         <div>
             <button onclick="auth('login')">Log In</button>
             <button onclick="auth('register')">Register</button>
         </div>
-        <p id="auth-err" style="color: #ff0055; font-size: 0.8em; margin-top: 10px;"></p>
+        <p id="auth-err" style="color: #ff5ed1; font-size: 0.8em; margin-top: 10px;"></p>
     </div>
 
     <div id="chat-screen">
         <div id="sidebar">
-            <div class="brand-logo">YS <span class="brand-heart">♥</span> FLAGS</div>
-            <p style="font-size: 0.8em; color: #00aa44; margin: 10px 0;">ONLINE NODES</p>
+            <div class="brand-logo"><span class="logo-y">Y</span><span class="logo-s">S</span> <span class="brand-heart">♥</span> FLAGS</div>
+            <p style="font-size: 0.8em; color: #b15eff; margin: 10px 0;">ONLINE USERS</p>
             <div id="online-list" style="flex: 1; overflow-y: auto;"></div>
         </div>
         <div id="chat-main">
             <div id="messages"></div>
             <div id="input-area">
                 <input type="file" id="img-input" accept="image/*" multiple style="display: none;">
-                <button type="button" onclick="document.getElementById('img-input').click()">📷 Media</button>
-                <input type="text" id="msg-input" placeholder="Type message..." onkeydown="if(event.key === 'Enter') sendMsg()">
+                <button type="button" onclick="document.getElementById('img-input').click()">🖼️ Photos</button>
+                <input type="text" id="msg-input" placeholder="Type a message..." onkeydown="if(event.key === 'Enter') sendMsg()">
                 <button id="send-btn" onclick="sendMsg()">Send</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- MATRIX RAIN EFFECT ---
+        // --- YS PURPLE, PINK & WHITE ANIMATED BACKGROUND ---
         const canvas = document.getElementById('matrix-bg');
         const ctx = canvas.getContext('2d');
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789♥YSYS';
-        const fontSize = 14;
+        const chars = 'YYYYSSSS♥YSYS';
+        const colors = ['#b15eff', '#ff5ed1', '#ffffff', '#9b51e0', '#ff2a85'];
+        const fontSize = 15;
         let columns = Math.floor(canvas.width / fontSize);
         let drops = Array(columns).fill(1);
 
         function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillStyle = 'rgba(10, 4, 18, 0.08)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#00ff66';
-            ctx.font = fontSize + 'px monospace';
+            
+            ctx.font = 'bold ' + fontSize + 'px monospace';
 
             for (let i = 0; i < drops.length; i++) {
                 const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
                 ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
                 if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
                 drops[i]++;
             }
         }
         setInterval(drawMatrix, 33);
 
-        // --- CHAT APPLICATION LOGIC ---
+        // --- SOCKET CHAT LOGIC ---
         const socket = io();
         let currentUser = null;
 
@@ -144,15 +151,15 @@
         });
 
         socket.on('user_joined', (data) => {
-            appendSysMsg(`> ${data.username} connected.`);
+            appendSysMsg(`🟢 ${data.username} joined the chat`);
         });
 
         socket.on('user_left', (data) => {
-            appendSysMsg(`> ${data.username} disconnected.`);
+            appendSysMsg(`🔴 ${data.username} left the chat`);
         });
 
         socket.on('system_message', (txt) => {
-            appendSysMsg(`[SYS] ${txt}`);
+            appendSysMsg(`⚠️ ${txt}`);
         });
 
         socket.on('receive_message', (data) => {
@@ -161,15 +168,14 @@
             div.className = 'msg';
             div.id = data.msgId;
             
-            let ownerBadge = data.role === 'RS FLAGS / OWNER' ? `<span class="badge-owner">OWNER</span>` : '';
+            let ownerBadge = data.role === 'RS FLAGS / OWNER' ? `<span class="badge-owner">RS FLAGS OWNER</span>` : '';
             
-            // Delete button option: User can delete their own message, or Owner can delete any message
             let canDelete = currentUser && (currentUser.username === data.username || currentUser.role === 'RS FLAGS / OWNER');
             let deleteBtn = canDelete ? `<button class="delete-btn" onclick="deleteMessage('${data.msgId}')">[Remove]</button>` : '';
 
             let content = `
                 <div class="author">
-                    <span>${data.username} ${ownerBadge} <span style="font-weight:normal; font-size:0.75em; color:#00aa44">${data.time}</span></span>
+                    <span>${data.username} ${ownerBadge} <span style="font-weight:normal; font-size:0.75em; color:#b15eff">${data.time}</span></span>
                     ${deleteBtn}
                 </div>`;
             
@@ -181,7 +187,7 @@
                     content += `
                         <div class="img-card">
                             <img src="${dataUrl}" onclick="window.open('${dataUrl}')">
-                            <button class="download-btn" onclick="downloadBlob('${dataUrl}', 'ys_media_${Date.now()}_${idx + 1}.jpg')">⬇️ Save JPG</button>
+                            <button class="download-btn" onclick="downloadBlob('${dataUrl}', 'ys_photo_${Date.now()}_${idx + 1}.jpg')">⬇️ Download JPG</button>
                         </div>`;
                 });
                 content += `</div>`;
@@ -192,7 +198,6 @@
             msgBox.scrollTop = msgBox.scrollHeight;
         });
 
-        // Real-time message removal
         socket.on('message_deleted', (msgId) => {
             const targetMsg = document.getElementById(msgId);
             if (targetMsg) targetMsg.remove();
@@ -212,13 +217,13 @@
                 if (currentUser && currentUser.role === 'RS FLAGS / OWNER' && u.username !== currentUser.username) {
                     kickBtn = `<button class="kick-btn" onclick="kick('${u.username}')">Kick</button>`;
                 }
-                item.innerHTML = `<span>> ${u.username}</span> ${kickBtn}`;
+                item.innerHTML = `<span>${u.username}</span> ${kickBtn}`;
                 list.appendChild(item);
             });
         });
 
         socket.on('kicked', () => {
-            alert('Disconnected by RS FLAGS Owner.');
+            alert('Kicked by RS FLAGS Owner.');
             window.location.reload();
         });
 
