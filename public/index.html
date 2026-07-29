@@ -24,12 +24,10 @@
         .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; }
         .badge-owner { color: #ff4757; font-size: 0.75em; border: 1px solid #ff4757; padding: 1px 4px; border-radius: 4px; margin-left: 5px; }
         
-        /* Image gallery and download styling */
         .image-gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
         .img-card { display: flex; flex-direction: column; align-items: center; background: #181818; padding: 6px; border-radius: 8px; border: 1px solid #333; }
-        .img-card img { max-width: 200px; max-height: 200px; object-fit: cover; border-radius: 6px; }
-        .download-link { color: #3797f0; font-size: 0.75em; text-decoration: none; margin-top: 6px; font-weight: bold; }
-        .download-link:hover { text-decoration: underline; }
+        .img-card img { max-width: 220px; max-height: 220px; object-fit: cover; border-radius: 6px; cursor: pointer; }
+        .download-btn { color: #3797f0; font-size: 0.8em; text-decoration: none; margin-top: 6px; font-weight: bold; cursor: pointer; background: transparent; border: none; }
 
         .sys-msg { text-align: center; color: #8e8e8e; font-size: 0.85em; margin: 5px 0; }
         
@@ -117,11 +115,11 @@
             
             if (data.images && data.images.length > 0) {
                 content += `<div class="image-gallery">`;
-                data.images.forEach(url => {
+                data.images.forEach((dataUrl, idx) => {
                     content += `
                         <div class="img-card">
-                            <img src="${url}" onclick="window.open('${url}')">
-                            <a class="download-link" href="${url}" download>⬇️ Download</a>
+                            <img src="${dataUrl}" onclick="window.open('${dataUrl}')">
+                            <button class="download-btn" onclick="downloadImage('${dataUrl}', 'photo_${idx + 1}.jpg')">⬇️ Download</button>
                         </div>`;
                 });
                 content += `</div>`;
@@ -152,34 +150,11 @@
             window.location.reload();
         });
 
-        function processImage(file) {
+        function readFileAsDataURL(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
                 reader.readAsDataURL(file);
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const maxDim = 1000;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height && width > maxDim) {
-                            height = Math.round((height * maxDim) / width);
-                            width = maxDim;
-                        } else if (height > maxDim) {
-                            width = Math.round((width * maxDim) / height);
-                            height = maxDim;
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.8));
-                    };
-                };
             });
         }
 
@@ -195,18 +170,24 @@
             sendBtn.disabled = true;
             sendBtn.innerText = 'Sending...';
 
-            const processedImages = [];
-            for (let file of files) {
-                const imgData = await processImage(file);
-                processedImages.push(imgData);
-            }
+            const imagePromises = files.map(file => readFileAsDataURL(file));
+            const images = await Promise.all(imagePromises);
 
-            socket.emit('send_message', { text, images: processedImages });
+            socket.emit('send_message', { text, images });
             
             textInput.value = '';
             fileInput.value = '';
             sendBtn.disabled = false;
             sendBtn.innerText = 'Send';
+        }
+
+        function downloadImage(dataUrl, filename) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         function kick(username) {
