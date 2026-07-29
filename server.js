@@ -6,7 +6,6 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Enable 50MB payload limit for Socket.IO image transfers
 const io = new Server(server, {
     maxHttpBufferSize: 5e7,
     cors: { origin: "*", methods: ["GET", "POST"] }
@@ -17,7 +16,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 const users = {};
 const registeredUsers = {};
 
-// Default Owner Credentials
 registeredUsers['gw.akira'] = { 
     password: 'Akira@ys7', 
     role: 'RS FLAGS / OWNER',
@@ -60,7 +58,6 @@ io.on('connection', (socket) => {
         broadcastOnlineUsers();
     });
 
-    // Update Profile (Display Name & Avatar)
     socket.on('update_profile', ({ displayName, avatar }) => {
         const user = users[socket.id];
         if (!user) return;
@@ -100,9 +97,85 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Delete message for all users
     socket.on('delete_message', (msgId) => {
         io.emit('message_deleted', msgId);
+    });
+
+    // --- WEBRTC CALL SIGNALING ---
+    socket.on('call_user', ({ targetUsername, signalData, isVideo }) => {
+        const caller = users[socket.id];
+        let targetSocketId = null;
+
+        for (let id in users) {
+            if (users[id].username === targetUsername) {
+                targetSocketId = id;
+                break;
+            }
+        }
+
+        if (targetSocketId && caller) {
+            io.to(targetSocketId).emit('incoming_call', {
+                signal: signalData,
+                fromUsername: caller.username,
+                fromDisplayName: caller.displayName || caller.username,
+                fromAvatar: caller.avatar,
+                isVideo
+            });
+        } else {
+            socket.emit('call_failed', 'User is offline or unavailable.');
+        }
+    });
+
+    socket.on('answer_call', ({ targetUsername, signalData }) => {
+        let targetSocketId = null;
+        for (let id in users) {
+            if (users[id].username === targetUsername) {
+                targetSocketId = id;
+                break;
+            }
+        }
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('call_accepted', { signal: signalData });
+        }
+    });
+
+    socket.on('reject_call', ({ targetUsername }) => {
+        let targetSocketId = null;
+        for (let id in users) {
+            if (users[id].username === targetUsername) {
+                targetSocketId = id;
+                break;
+            }
+        }
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('call_rejected');
+        }
+    });
+
+    socket.on('end_call', ({ targetUsername }) => {
+        let targetSocketId = null;
+        for (let id in users) {
+            if (users[id].username === targetUsername) {
+                targetSocketId = id;
+                break;
+            }
+        }
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('call_ended');
+        }
+    });
+
+    socket.on('ice_candidate', ({ targetUsername, candidate }) => {
+        let targetSocketId = null;
+        for (let id in users) {
+            if (users[id].username === targetUsername) {
+                targetSocketId = id;
+                break;
+            }
+        }
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('ice_candidate', { candidate });
+        }
     });
 
     socket.on('kick_user', (targetUsername) => {
