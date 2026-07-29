@@ -7,69 +7,48 @@
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', 'Consolas', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        
         body { background: #0a0412; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
-
         #matrix-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.35; pointer-events: none; }
-
-        /* Auth Screen */
         #auth-screen { z-index: 10; background: rgba(18, 8, 33, 0.95); padding: 30px 20px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; border: 1px solid #b15eff; box-shadow: 0 0 25px rgba(177, 94, 255, 0.35); }
         #auth-screen input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; font-size: 16px; }
         #auth-screen button { width: 48%; padding: 12px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; transition: 0.2s; font-size: 15px; }
         #auth-screen button:hover { background: #ff5ed1; color: #000; box-shadow: 0 0 15px #ff5ed1; }
-
-        /* Main Chat Screen */
         #chat-screen { display: none; z-index: 10; width: 95%; max-width: 1000px; height: 90vh; height: 90dvh; background: rgba(15, 6, 28, 0.92); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 35px rgba(255, 94, 209, 0.25); position: relative; }
-        
         #sidebar { width: 280px; background: rgba(22, 10, 40, 0.95); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 20; }
-        
         .brand-logo { font-size: 1.4em; font-weight: 900; letter-spacing: 2px; text-align: center; border-bottom: 1px dashed #b15eff; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .logo-y { color: #b15eff; text-shadow: 0 0 12px #b15eff; }
         .logo-s { color: #ff5ed1; text-shadow: 0 0 12px #ff5ed1; }
         .brand-heart { color: #ffffff; text-shadow: 0 0 10px #ffffff; }
-
         .my-profile-box { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(35, 14, 61, 0.6); border: 1px solid #5a1b8e; border-radius: 8px; margin-bottom: 12px; }
         .avatar-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ff5ed1; background: #120624; flex-shrink: 0; }
         .edit-prof-btn { background: #2a0845; color: #ff5ed1; border: 1px solid #ff5ed1; font-size: 0.75em; padding: 4px 10px; border-radius: 10px; cursor: pointer; margin-top: 3px; font-weight: bold; }
         .edit-prof-btn:hover { background: #ff5ed1; color: #000; }
-
         #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 4, 18, 0.75); width: 100%; height: 100%; }
-        
         #mobile-header { display: none; background: #160a28; padding: 10px 15px; border-bottom: 1px solid #3c125d; align-items: center; justify-content: space-between; }
         .toggle-sidebar-btn { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85em; }
-
         #messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        
         .msg { background: rgba(35, 14, 61, 0.75); padding: 10px 12px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 85%; word-break: break-word; position: relative; color: #ffffff; display: flex; gap: 10px; }
         .msg-body { flex: 1; min-width: 0; }
         .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; color: #ff5ed1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; }
-        
         .badge-owner { color: #ffffff; background: #ff2a85; border: 1px solid #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 0.7em; text-shadow: 0 0 5px #ffffff; }
-
         .delete-btn { background: transparent; border: none; color: #ff5ed1; font-size: 0.75em; cursor: pointer; opacity: 0.85; }
         .delete-btn:hover { color: #ffffff; text-decoration: underline; }
-
         .image-gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
         .img-card { display: flex; flex-direction: column; align-items: center; background: #120624; padding: 6px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 100%; }
         .img-card img { max-width: 100%; max-height: 220px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid #b15eff; }
         .download-btn { color: #ffffff; font-size: 0.8em; margin-top: 6px; font-weight: bold; cursor: pointer; background: transparent; border: none; }
         .download-btn:hover { color: #ff5ed1; text-decoration: underline; }
-
         .sys-msg { text-align: center; color: #b15eff; font-size: 0.85em; margin: 5px 0; text-shadow: 0 0 5px #5a1b8e; }
-        
         #input-area { display: flex; padding: 12px; background: rgba(22, 10, 40, 0.95); gap: 8px; align-items: center; border-top: 1px solid #3c125d; }
         #input-area input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #b15eff; background: #0a0412; color: #ffffff; outline: none; font-size: 15px; }
         #input-area button { background: #2a0845; border: 1px solid #ff5ed1; padding: 10px 16px; color: #ffffff; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s; white-space: nowrap; font-size: 14px; }
         #input-area button:hover { background: #ff5ed1; color: #000; box-shadow: 0 0 10px #ff5ed1; }
-
         .user-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a0845; font-size: 0.9em; color: #ffffff; }
         .user-item-left { display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; }
         .call-action-btns { display: flex; gap: 5px; flex-shrink: 0; }
         .call-icon-btn { background: #2a0845; border: 1px solid #ff5ed1; color: #ff5ed1; border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 12px; }
         .call-icon-btn:hover { background: #ff5ed1; color: #000; }
         .kick-btn { background: #ff2a85; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex-shrink: 0; }
-
-        /* Profile Modal */
         #profile-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
         .modal-content { background: #120624; border: 1px solid #b15eff; border-radius: 12px; padding: 20px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 0 25px #b15eff; }
         .modal-content img { width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ff5ed1; margin: 10px 0; }
@@ -77,8 +56,6 @@
         .modal-actions { display: flex; justify-content: space-around; margin-top: 15px; gap: 10px; }
         .modal-btn { flex: 1; background: #2a0845; border: 1px solid #ff5ed1; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .modal-btn:hover { background: #ff5ed1; color: #000; }
-
-        /* Call Screen UI Overlay */
         #call-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 4, 18, 0.96); z-index: 200; flex-direction: column; justify-content: space-between; align-items: center; padding: 30px 20px; }
         .video-container { position: relative; width: 100%; max-width: 600px; height: 60vh; background: #120624; border-radius: 12px; border: 1px solid #b15eff; overflow: hidden; display: flex; justify-content: center; align-items: center; }
         #remote-video { width: 100%; height: 100%; object-fit: cover; }
@@ -88,7 +65,6 @@
         .call-controls { display: flex; gap: 20px; margin-bottom: 20px; }
         .btn-call-end { background: #ff2a85; color: #fff; border: none; padding: 15px 30px; border-radius: 30px; font-weight: bold; font-size: 1.1em; cursor: pointer; box-shadow: 0 0 15px #ff2a85; }
         .btn-call-accept { background: #00e676; color: #000; border: none; padding: 15px 30px; border-radius: 30px; font-weight: bold; font-size: 1.1em; cursor: pointer; box-shadow: 0 0 15px #00e676; }
-
         @media (max-width: 768px) {
             #chat-screen { width: 100%; height: 100dvh; border-radius: 0; border: none; }
             #sidebar { position: absolute; top: 0; left: 0; height: 100%; transform: translateX(-100%); }
@@ -97,17 +73,14 @@
             .msg { max-width: 92%; }
             #auth-screen { margin: 15px; }
         }
-
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #0a0412; }
         ::-webkit-scrollbar-thumb { background: #b15eff; border-radius: 3px; }
     </style>
 </head>
 <body>
-
     <canvas id="matrix-bg"></canvas>
 
-    <!-- Auth Screen -->
     <div id="auth-screen">
         <div class="brand-logo" style="justify-content: center;"><span class="logo-y">Y</span><span class="logo-s">S</span> <span class="brand-heart">♥</span></div>
         <p style="font-size: 0.8em; color: #b15eff; margin: 8px 0 15px 0;">RS FLAGS CHAT</p>
@@ -120,7 +93,6 @@
         <p id="auth-err" style="color: #ff5ed1; font-size: 0.8em; margin-top: 10px;"></p>
     </div>
 
-    <!-- Main Chat Screen -->
     <div id="chat-screen">
         <div id="sidebar">
             <div class="brand-logo">
@@ -160,7 +132,7 @@
         </div>
     </div>
 
-    <!-- Call Overlay -->
+    <!-- Call Screen UI Overlay -->
     <div id="call-screen">
         <div class="call-user-info">
             <img id="call-avatar" class="call-user-avatar" src="">
@@ -201,7 +173,7 @@
     <script>
         const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b15eff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
-        // Matrix Background
+        // Matrix Rain
         const canvas = document.getElementById('matrix-bg');
         const ctx = canvas.getContext('2d');
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -248,14 +220,21 @@
         let currentUser = null;
         let tempAvatarData = null;
 
-        // --- WEBRTC STATE VARIABLES ---
+        // --- WEBRTC CALLING ENGINE ---
         let peerConnection = null;
         let localStream = null;
         let callTargetUsername = null;
         let incomingSignal = null;
         let isVideoCall = false;
 
-        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        // Multiple STUN servers for cross-network connectivity
+        const rtcConfig = { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ] 
+        };
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedSession = localStorage.getItem('ys_user_session');
@@ -346,9 +325,7 @@
             if (targetMsg) targetMsg.remove();
         });
 
-        function deleteMessage(msgId) {
-            socket.emit('delete_message', msgId);
-        }
+        function deleteMessage(msgId) { socket.emit('delete_message', msgId); }
 
         socket.on('update_online_list', (users) => {
             const list = document.getElementById('online-list');
@@ -380,13 +357,15 @@
             });
         });
 
-        socket.on('kicked', () => {
-            alert('Kicked by RS FLAGS Owner.');
-            logout();
-        });
+        socket.on('kicked', () => { alert('Kicked by RS FLAGS Owner.'); logout(); });
 
-        // --- CALLING / WEBRTC IMPLEMENTATION ---
+        // --- ENHANCED WEBRTC CALLING FUNCTIONS ---
         async function initiateCall(targetUsername, targetDisplayName, targetAvatar, video) {
+            // Check HTTPS requirement
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                return alert("Calling requires HTTPS connection! Make sure your URL starts with https://");
+            }
+
             callTargetUsername = targetUsername;
             isVideoCall = video;
 
@@ -399,7 +378,11 @@
 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
-                if (isVideoCall) document.getElementById('local-video').srcObject = localStream;
+                if (isVideoCall) {
+                    const localVid = document.getElementById('local-video');
+                    localVid.srcObject = localStream;
+                    localVid.play();
+                }
 
                 createPeerConnection();
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -409,7 +392,8 @@
 
                 socket.emit('call_user', { targetUsername, signalData: offer, isVideo: isVideoCall });
             } catch (err) {
-                alert('Could not access microphone/camera.');
+                console.error("Camera/Mic Error:", err);
+                alert('Microphone/Camera permission was denied or not supported.');
                 endCall();
             }
         }
@@ -428,12 +412,20 @@
         });
 
         async function acceptCall() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                return alert("Calling requires HTTPS connection! Make sure your URL starts with https://");
+            }
+
             document.getElementById('accept-call-btn').style.display = 'none';
-            document.getElementById('call-status').innerText = 'Connected';
+            document.getElementById('call-status').innerText = 'Connecting...';
 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
-                if (isVideoCall) document.getElementById('local-video').srcObject = localStream;
+                if (isVideoCall) {
+                    const localVid = document.getElementById('local-video');
+                    localVid.srcObject = localStream;
+                    localVid.play();
+                }
 
                 createPeerConnection();
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -443,8 +435,10 @@
                 await peerConnection.setLocalDescription(answer);
 
                 socket.emit('answer_call', { targetUsername: callTargetUsername, signalData: answer });
+                document.getElementById('call-status').innerText = 'Connected';
             } catch (err) {
-                alert('Failed to establish call.');
+                console.error("Accept Error:", err);
+                alert('Could not access microphone/camera.');
                 endCall();
             }
         }
@@ -456,23 +450,13 @@
             }
         });
 
-        socket.on('call_rejected', () => {
-            alert('Call rejected.');
-            cleanupCall();
-        });
-
-        socket.on('call_ended', () => {
-            cleanupCall();
-        });
-
-        socket.on('call_failed', (msg) => {
-            alert(msg);
-            cleanupCall();
-        });
+        socket.on('call_rejected', () => { alert('Call rejected.'); cleanupCall(); });
+        socket.on('call_ended', () => { cleanupCall(); });
+        socket.on('call_failed', (msg) => { alert(msg); cleanupCall(); });
 
         socket.on('ice_candidate', ({ candidate }) => {
-            if (peerConnection) {
-                peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            if (peerConnection && candidate) {
+                peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error(e));
             }
         });
 
@@ -486,7 +470,9 @@
             };
 
             peerConnection.ontrack = (event) => {
-                document.getElementById('remote-video').srcObject = event.streams[0];
+                const remoteVid = document.getElementById('remote-video');
+                remoteVid.srcObject = event.streams[0];
+                remoteVid.play().catch(e => console.error("Play error:", e));
             };
         }
 
@@ -513,7 +499,7 @@
             incomingSignal = null;
         }
 
-        // --- PROFILE EDITING ---
+        // Profile Editor
         function openProfileModal() {
             document.getElementById('profile-modal').style.display = 'flex';
             document.getElementById('preview-avatar').src = currentUser.avatar || DEFAULT_AVATAR;
@@ -521,9 +507,7 @@
             tempAvatarData = currentUser.avatar;
         }
 
-        function closeProfileModal() {
-            document.getElementById('profile-modal').style.display = 'none';
-        }
+        function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
 
         async function previewAvatar(event) {
             const file = event.target.files[0];
@@ -585,9 +569,7 @@
                 const bstr = atob(arr[1]);
                 let n = bstr.length;
                 const u8arr = new Uint8Array(n);
-                while (n--) {
-                    u8arr[n] = bstr.charCodeAt(n);
-                }
+                while (n--) { u8arr[n] = bstr.charCodeAt(n); }
                 const blob = new Blob([u8arr], { type: mime });
                 const blobUrl = URL.createObjectURL(blob);
 
@@ -598,14 +580,10 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(blobUrl);
-            } catch(e) {
-                console.error("Download failed:", e);
-            }
+            } catch(e) { console.error("Download failed:", e); }
         }
 
-        function kick(username) {
-            socket.emit('kick_user', username);
-        }
+        function kick(username) { socket.emit('kick_user', username); }
 
         function appendSysMsg(txt) {
             const msgBox = document.getElementById('messages');
