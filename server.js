@@ -24,7 +24,8 @@ function getOnlineUsers() {
                 displayName: data.displayName || username,
                 avatar: data.avatar || '',
                 bio: data.bio || '',
-                role: data.role || 'MEMBER'
+                role: data.role || 'MEMBER',
+                dpEffect: data.dpEffect || 'dp-effect-none'
             });
         }
     });
@@ -47,19 +48,33 @@ io.on('connection', (socket) => {
                 return socket.emit('auth_error', 'Username already exists.');
             }
             const role = isOwnerCreds ? 'OWNER' : 'MEMBER';
-            users.set(cleanUser, { password, displayName: cleanUser, avatar: '', bio: 'Hey there! I am using RS FLAGS Chat.', role, socketId: socket.id });
+            users.set(cleanUser, { 
+                password, 
+                displayName: cleanUser, 
+                avatar: '', 
+                bio: 'Hey there! I am using RS FLAGS Chat.', 
+                role, 
+                dpEffect: 'dp-effect-none',
+                socketId: socket.id 
+            });
             currentUsername = cleanUser;
         } else {
             const user = users.get(cleanUser);
-            // Auto-register Owner if account doesn't exist yet
             if (!user && isOwnerCreds) {
-                users.set(cleanUser, { password, displayName: cleanUser, avatar: '', bio: 'Server Owner', role: 'OWNER', socketId: socket.id });
+                users.set(cleanUser, { 
+                    password, 
+                    displayName: cleanUser, 
+                    avatar: '', 
+                    bio: 'Server Owner', 
+                    role: 'OWNER', 
+                    dpEffect: 'dp-effect-none',
+                    socketId: socket.id 
+                });
                 currentUsername = cleanUser;
             } else if (!user || user.password !== password) {
                 return socket.emit('auth_error', 'Invalid username or password.');
             } else {
                 user.socketId = socket.id;
-                // Force OWNER role if logging in as gw.akira with correct password
                 if (isOwnerCreds) user.role = 'OWNER';
                 currentUsername = cleanUser;
             }
@@ -71,26 +86,29 @@ io.on('connection', (socket) => {
             displayName: userData.displayName,
             avatar: userData.avatar,
             bio: userData.bio,
-            role: userData.role
+            role: userData.role,
+            dpEffect: userData.dpEffect || 'dp-effect-none'
         });
 
         io.emit('update_online_list', getOnlineUsers());
     });
 
-    socket.on('update_profile', ({ displayName, avatar, bio }) => {
+    socket.on('update_profile', ({ displayName, avatar, bio, dpEffect }) => {
         if (!currentUsername) return;
         const user = users.get(currentUsername);
         if (user) {
             if (displayName) user.displayName = displayName;
             if (avatar !== undefined) user.avatar = avatar;
             if (bio !== undefined) user.bio = bio;
+            if (dpEffect !== undefined) user.dpEffect = dpEffect;
             
             socket.emit('profile_updated', {
                 username: currentUsername,
                 displayName: user.displayName,
                 avatar: user.avatar,
                 bio: user.bio,
-                role: user.role
+                role: user.role,
+                dpEffect: user.dpEffect
             });
             io.emit('update_online_list', getOnlineUsers());
         }
@@ -145,6 +163,7 @@ io.on('connection', (socket) => {
             avatar: user.avatar || '',
             bio: user.bio || '',
             role: user.role || 'MEMBER',
+            dpEffect: user.dpEffect || 'dp-effect-none',
             text: data.text || '',
             images: data.images || [],
             audio: data.audio || null,

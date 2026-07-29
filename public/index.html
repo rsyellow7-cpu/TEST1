@@ -20,14 +20,15 @@
         .logo-y { color: #b15eff; text-shadow: 0 0 12px #b15eff; }
         .logo-s { color: #ff5ed1; text-shadow: 0 0 12px #ff5ed1; }
 
-        .my-profile-box { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(35, 14, 61, 0.6); border: 1px solid #5a1b8e; border-radius: 8px; margin-bottom: 12px; }
+        .my-profile-box { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(35, 14, 61, 0.6); border: 1px solid #5a1b8e; border-radius: 8px; margin-bottom: 12px; position: relative; }
         .profile-row { display: flex; align-items: center; gap: 10px; }
-        .avatar-img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 1px solid #ff5ed1; background: #120624; flex-shrink: 0; }
+        .avatar-container { position: relative; width: 44px; height: 44px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; }
+        .avatar-img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 1px solid #ff5ed1; background: #120624; }
         
         .role-badge { display: inline-block; background: #ff5ed1; color: #0a0412; font-size: 0.65em; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-left: 4px; }
         .role-owner { background: #ffd700; color: #000; }
 
-        .bio-text { font-size: 0.75em; color: #d0a3ff; font-style: italic; margin-top: 4px; cursor: pointer; border-top: 1px dashed #3c125d; padding-top: 4px; }
+        .bio-text { font-size: 0.75em; color: #d0a3ff; font-style: italic; margin-top: 4px; border-top: 1px dashed #3c125d; padding-top: 4px; word-break: break-word; }
 
         #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 4, 18, 0.75); width: 100%; height: 100%; position: relative; }
         #messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
@@ -56,6 +57,31 @@
         .action-icon-btn { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; border-radius: 50%; width: 38px; height: 38px; font-size: 1.1em; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
         .action-icon-btn.recording { background: #ff2a85; color: #ffffff; border-color: #ff2a85; animation: pulse 1s infinite; }
 
+        /* --- DP EFFECT STYLES --- */
+        .dp-effect-none { border-radius: 50%; border: 1px solid #ff5ed1; }
+        .dp-effect-neon { border-radius: 50%; border: 2px solid #00ffff; box-shadow: 0 0 12px #00ffff, 0 0 20px #ff00ff; }
+        .dp-effect-gold { border-radius: 50%; border: 2px solid #ffd700; box-shadow: 0 0 15px #ffd700; }
+        .dp-effect-pulse { border-radius: 50%; border: 2px solid #ff5ed1; animation: dpPulse 1.5s infinite alternate; }
+        .dp-effect-glitch { border-radius: 20%; border: 2px solid #ff2a85; box-shadow: -3px 0 #00ffff, 3px 0 #ff00ff; }
+
+        @keyframes dpPulse {
+            0% { box-shadow: 0 0 4px #ff5ed1; transform: scale(0.98); }
+            100% { box-shadow: 0 0 18px #ff5ed1, 0 0 28px #b15eff; transform: scale(1.05); }
+        }
+
+        /* --- PROFILE MODAL STYLES --- */
+        #profile-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.8); z-index: 99; justify-content: center; align-items: center; }
+        .modal-content { background: #160a28; border: 1px solid #b15eff; border-radius: 12px; width: 90%; max-width: 400px; padding: 20px; box-shadow: 0 0 30px rgba(177, 94, 255, 0.4); display: flex; flex-direction: column; gap: 12px; }
+        .modal-content h3 { color: #ff5ed1; border-bottom: 1px dashed #b15eff; padding-bottom: 8px; text-align: center; }
+        .modal-field { display: flex; flex-direction: column; gap: 4px; }
+        .modal-field label { font-size: 0.8em; color: #b15eff; font-weight: bold; }
+        .modal-field input, .modal-field select, .modal-field textarea { background: #0a0412; border: 1px solid #ff5ed1; border-radius: 6px; padding: 8px 10px; color: #fff; outline: none; font-size: 14px; }
+        .modal-field textarea { resize: none; height: 60px; }
+        .modal-btns { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; }
+        .modal-btns button { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #b15eff; font-weight: bold; cursor: pointer; }
+        .btn-save { background: #2a0845; color: #fff; }
+        .btn-cancel { background: #120624; color: #ff5ed1; border-color: #ff5ed1 !important; }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.1); }
@@ -66,6 +92,7 @@
 <body>
     <canvas id="matrix-bg"></canvas>
 
+    <!-- AUTHENTICATION SCREEN -->
     <div id="auth-screen">
         <div class="brand-logo" style="justify-content: center;"><span class="logo-y">Y</span><span class="logo-s">S</span></div>
         <p style="font-size: 0.8em; color: #b15eff; margin: 8px 0 15px 0;">RS FLAGS CHAT</p>
@@ -78,20 +105,27 @@
         <p id="auth-err" style="color: #ff5ed1; font-size: 0.8em; margin-top: 10px;"></p>
     </div>
 
+    <!-- MAIN CHAT SCREEN -->
     <div id="chat-screen">
         <div id="sidebar">
             <div class="brand-logo"><span><span class="logo-y">Y</span><span class="logo-s">S</span> FLAGS</span></div>
+            
+            <!-- CURRENT USER PROFILE BOX -->
             <div class="my-profile-box">
                 <div class="profile-row">
-                    <img id="my-avatar" class="avatar-img" src="">
-                    <div>
-                        <div id="my-display-name" style="font-weight:bold; font-size:0.9em; color:#ffffff;">Guest</div>
+                    <div class="avatar-container">
+                        <img id="my-avatar" class="avatar-img dp-effect-none" src="">
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div id="my-display-name" style="font-weight:bold; font-size:0.9em; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Guest</div>
                         <div id="my-username" style="font-size:0.75em; color:#b15eff;">@guest</div>
                         <span id="my-role" class="role-badge">MEMBER</span>
                     </div>
+                    <button class="btn-mini" onclick="openProfileModal()" title="Edit Profile">✏️ Edit</button>
                 </div>
-                <div id="my-bio" class="bio-text" onclick="editBio()" title="Click to edit bio">Bio: Hey there!</div>
+                <div id="my-bio" class="bio-text">Bio: Hey there!</div>
             </div>
+
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 5px 0;">
                 <p style="font-size: 0.8em; color: #b15eff;">ONLINE USERS</p>
                 <button class="btn-mini-danger btn-mini" onclick="logout()">Logout</button>
@@ -115,6 +149,44 @@
 
                 <input type="text" id="msg-input" placeholder="Type a message..." onkeydown="if(event.key === 'Enter') sendMsg()">
                 <button style="background: #2a0845; border: 1px solid #ff5ed1; padding: 10px 16px; color: #ffffff; border-radius: 20px; cursor: pointer; font-weight: bold;" onclick="sendMsg()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE CUSTOMIZATION MODAL -->
+    <div id="profile-modal">
+        <div class="modal-content">
+            <h3>Custom Profile</h3>
+
+            <div class="modal-field">
+                <label>Display Name</label>
+                <input type="text" id="edit-display-name" placeholder="Enter new display name">
+            </div>
+
+            <div class="modal-field">
+                <label>Avatar / DP Image</label>
+                <input type="file" id="edit-dp-file" accept="image/*" onchange="handleDpUpload(event)">
+            </div>
+
+            <div class="modal-field">
+                <label>DP Frame / Glow Effect</label>
+                <select id="edit-dp-effect">
+                    <option value="dp-effect-none">Classic Circle (None)</option>
+                    <option value="dp-effect-neon">Cyber Neon Glow</option>
+                    <option value="dp-effect-gold">Gold Aura</option>
+                    <option value="dp-effect-pulse">Pulse Wave</option>
+                    <option value="dp-effect-glitch">Cyber Glitch Box</option>
+                </select>
+            </div>
+
+            <div class="modal-field">
+                <label>Bio</label>
+                <textarea id="edit-bio" placeholder="Write a short bio..."></textarea>
+            </div>
+
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="closeProfileModal()">Cancel</button>
+                <button class="btn-save" onclick="saveProfileModal()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -144,6 +216,7 @@
         let currentUser = null;
         let pendingImages = [];
         let pendingVideoBase64 = null;
+        let pendingAvatarBase64 = null;
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
@@ -177,22 +250,29 @@
 
         socket.on('auth_success', (user) => {
             currentUser = user;
-            // Save login info in browser storage
             localStorage.setItem('rs_chat_user', document.getElementById('username').value.trim());
             localStorage.setItem('rs_chat_pass', document.getElementById('password').value.trim());
 
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
+            
+            updateMyProfileDisplay(user);
+        });
+
+        function updateMyProfileDisplay(user) {
             document.getElementById('my-display-name').innerText = user.displayName;
             document.getElementById('my-username').innerText = `@${user.username}`;
-            document.getElementById('my-avatar').src = user.avatar || DEFAULT_AVATAR;
+            
+            const avatarImg = document.getElementById('my-avatar');
+            avatarImg.src = user.avatar || DEFAULT_AVATAR;
+            avatarImg.className = `avatar-img ${user.dpEffect || 'dp-effect-none'}`;
             
             const roleBadge = document.getElementById('my-role');
             roleBadge.innerText = user.role;
             if (user.role === 'OWNER') roleBadge.classList.add('role-owner');
 
-            document.getElementById('my-bio').innerText = user.bio ? `Bio: ${user.bio}` : 'Click to set bio...';
-        });
+            document.getElementById('my-bio').innerText = user.bio ? `Bio: ${user.bio}` : 'No bio set...';
+        }
 
         socket.on('kicked', () => {
             alert('You were kicked from the server by the Owner.');
@@ -207,19 +287,54 @@
             else roleBadge.classList.remove('role-owner');
         });
 
-        // --- EDIT BIO ---
-        function editBio() {
-            const currentBio = currentUser ? (currentUser.bio || '') : '';
-            const newBio = prompt("Update your Bio:", currentBio);
-            if (newBio !== null) {
-                socket.emit('update_profile', { bio: newBio });
+        // --- PROFILE MODAL FUNCTIONS ---
+        function openProfileModal() {
+            if (!currentUser) return;
+            document.getElementById('edit-display-name').value = currentUser.displayName || '';
+            document.getElementById('edit-bio').value = currentUser.bio || '';
+            document.getElementById('edit-dp-effect').value = currentUser.dpEffect || 'dp-effect-none';
+            pendingAvatarBase64 = null;
+            document.getElementById('profile-modal').style.display = 'flex';
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profile-modal').style.display = 'none';
+        }
+
+        function handleDpUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            compressImage(file, 300, 0.8).then(base64 => {
+                pendingAvatarBase64 = base64;
+            });
+        }
+
+        function saveProfileModal() {
+            const newName = document.getElementById('edit-display-name').value.trim();
+            const newBio = document.getElementById('edit-bio').value.trim();
+            const newDpEffect = document.getElementById('edit-dp-effect').value;
+
+            const payload = {
+                displayName: newName || currentUser.username,
+                bio: newBio,
+                dpEffect: newDpEffect
+            };
+
+            if (pendingAvatarBase64) {
+                payload.avatar = pendingAvatarBase64;
             }
+
+            socket.emit('update_profile', payload);
+            closeProfileModal();
         }
 
         socket.on('profile_updated', (data) => {
             if (currentUser && data.username === currentUser.username) {
+                currentUser.displayName = data.displayName;
+                currentUser.avatar = data.avatar;
                 currentUser.bio = data.bio;
-                document.getElementById('my-bio').innerText = data.bio ? `Bio: ${data.bio}` : 'Click to set bio...';
+                currentUser.dpEffect = data.dpEffect;
+                updateMyProfileDisplay(currentUser);
             }
         });
 
@@ -245,8 +360,13 @@
                 }
 
                 div.innerHTML = `
-                    <div>🟢 <strong>${u.displayName || u.username}</strong> <span class="${roleBadgeClass}">${u.role}</span></div>
-                    <div style="font-size:0.75em; color:#a080c0;">${u.bio || 'No bio set'}</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img class="avatar-img ${u.dpEffect || 'dp-effect-none'}" style="width:28px; height:28px;" src="${u.avatar || DEFAULT_AVATAR}">
+                        <div>
+                            <strong>${u.displayName || u.username}</strong> <span class="${roleBadgeClass}">${u.role}</span>
+                        </div>
+                    </div>
+                    <div style="font-size:0.75em; color:#a080c0; padding-left:36px;">${u.bio || 'No bio set'}</div>
                     ${ownerButtons}`;
 
                 list.appendChild(div);
@@ -423,7 +543,7 @@
             let roleBadgeClass = data.role === 'OWNER' ? 'role-badge role-owner' : 'role-badge';
 
             div.innerHTML = `
-                <img class="avatar-img" src="${data.avatar || DEFAULT_AVATAR}">
+                <img class="avatar-img ${data.dpEffect || 'dp-effect-none'}" src="${data.avatar || DEFAULT_AVATAR}">
                 <div class="msg-body">
                     <div class="author">
                         <span>${data.displayName} <span class="${roleBadgeClass}">${data.role}</span></span>
