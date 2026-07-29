@@ -6,7 +6,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Enable 50MB payload limit for Socket.IO image transfers
+// Enable 50MB payload limit for Socket.IO image & profile picture transfers
 const io = new Server(server, {
     maxHttpBufferSize: 5e7,
     cors: { origin: "*", methods: ["GET", "POST"] }
@@ -18,7 +18,11 @@ const users = {};
 const registeredUsers = {};
 
 // Default Owner Credentials
-registeredUsers['gw.akira'] = { password: 'Akira@ys7', role: 'RS FLAGS / OWNER' };
+registeredUsers['gw.akira'] = { 
+    password: 'Akira@ys7', 
+    role: 'RS FLAGS / OWNER',
+    avatar: '' 
+};
 
 io.on('connection', (socket) => {
 
@@ -36,14 +40,30 @@ io.on('connection', (socket) => {
             if (registeredUsers[cleanName]) {
                 return socket.emit('auth_error', 'Username already exists. Please log in.');
             }
-            registeredUsers[cleanName] = { password, role: 'MEMBER' };
+            registeredUsers[cleanName] = { password, role: 'MEMBER', avatar: '' };
         }
 
         const role = registeredUsers[cleanName].role;
-        users[socket.id] = { username: cleanName, role };
+        const avatar = registeredUsers[cleanName].avatar || '';
+        
+        users[socket.id] = { username: cleanName, role, avatar };
 
-        socket.emit('auth_success', { username: cleanName, role });
+        socket.emit('auth_success', { username: cleanName, role, avatar });
         io.emit('user_joined', { username: cleanName, role });
+        broadcastOnlineUsers();
+    });
+
+    // Update Profile Photo / Avatar
+    socket.on('update_profile', ({ avatar }) => {
+        const user = users[socket.id];
+        if (!user) return;
+
+        user.avatar = avatar;
+        if (registeredUsers[user.username]) {
+            registeredUsers[user.username].avatar = avatar;
+        }
+
+        socket.emit('profile_updated', { avatar });
         broadcastOnlineUsers();
     });
 
@@ -58,13 +78,14 @@ io.on('connection', (socket) => {
             msgId,
             username: user.username,
             role: user.role,
+            avatar: user.avatar,
             text: data.text || '',
             images: data.images || [],
             time
         });
     });
 
-    // Delete message for all connected clients
+    // Delete message
     socket.on('delete_message', (msgId) => {
         io.emit('message_deleted', msgId);
     });
@@ -94,7 +115,7 @@ io.on('connection', (socket) => {
     });
 
     function broadcastOnlineUsers() {
-        const onlineList = Object.values(users).map(u => ({ username: u.username, role: u.role }));
+        const onlineList = Object.values(users).map(u => ({ username: u.username, role: u.role, avatar: u.avatar }));
         io.emit('update_online_list', onlineList);
     }
 });
