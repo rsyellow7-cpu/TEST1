@@ -100,6 +100,7 @@
 <body>
     <canvas id="matrix-bg"></canvas>
 
+    <!-- Explicit Audio Tag for Call Sound -->
     <audio id="remote-audio" autoplay playsinline style="display:none;"></audio>
 
     <!-- Auth Screen -->
@@ -505,7 +506,7 @@
             closeProfileModal();
         }
 
-        // --- CALL SYSTEM FIX ---
+        // --- ENHANCED WEBRTC CALL ENGINE ---
         let peerConnection = null;
         let localStream = null;
         let callTargetUsername = null;
@@ -523,15 +524,19 @@
             ] 
         };
 
-        // Helper to safely fetch local media matching call type
+        // Resume AudioContext if browser suspends autoplay
+        function unlockAudioContext() {
+            const audioEl = document.getElementById('remote-audio');
+            audioEl.muted = false;
+            audioEl.volume = 1.0;
+            audioEl.play().catch(err => console.log("User action needed to unblock audio autoplay:", err));
+        }
+
         async function getLocalMediaStream(videoRequired) {
             try {
-                const constraints = { audio: true, video: videoRequired };
-                return await navigator.mediaDevices.getUserMedia(constraints);
+                return await navigator.mediaDevices.getUserMedia({ audio: true, video: videoRequired });
             } catch (err) {
                 if (videoRequired) {
-                    // Try audio-only as fallback if video device isn't available
-                    console.warn("Video failed, attempting audio-only fallback...", err);
                     return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 }
                 throw err;
@@ -539,6 +544,7 @@
         }
 
         async function startCall(targetUsername, targetDisplayName, targetAvatar, targetBio, video) {
+            unlockAudioContext();
             callTargetUsername = targetUsername;
             isVideoCall = video;
 
@@ -561,7 +567,7 @@
 
                 socket.emit('call_user', { targetUsername, signalData: offer, isVideo: isVideoCall });
             } catch (err) {
-                alert("Microphone/Camera permission denied or device not found. Please allow access in browser site settings.");
+                alert("Microphone/Camera permission denied or device error.");
                 closeCallUI();
             }
         }
@@ -579,6 +585,7 @@
         });
 
         async function acceptIncomingCall() {
+            unlockAudioContext();
             document.getElementById('incoming-modal').style.display = 'none';
 
             const callerName = document.getElementById('incoming-caller-name').innerText;
@@ -606,7 +613,7 @@
                 socket.emit('answer_call', { targetUsername: callTargetUsername, signalData: answer });
                 startTimer();
             } catch (err) {
-                alert("Microphone/Camera permission denied or device error. Check browser settings.");
+                alert("Microphone/Camera permission denied or device error.");
                 hangupCall();
             }
         }
@@ -646,14 +653,17 @@
             peerConnection.ontrack = (event) => {
                 const stream = event.streams[0];
                 
+                // Directly pipe audio track stream to remote-audio element
                 const remoteAudio = document.getElementById('remote-audio');
                 remoteAudio.srcObject = stream;
-                remoteAudio.play().catch(err => console.log("Audio playback error:", err));
+                remoteAudio.muted = false;
+                remoteAudio.volume = 1.0;
+                remoteAudio.play().catch(err => console.log("Audio autoplay error:", err));
 
                 if (isVideoCall) {
                     const remoteVid = document.getElementById('remote-video');
                     remoteVid.srcObject = stream;
-                    remoteVid.play().catch(err => console.log("Video playback error:", err));
+                    remoteVid.play().catch(err => console.log("Video autoplay error:", err));
                 }
             };
         }
