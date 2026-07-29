@@ -11,30 +11,44 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory data
-const users = {}; // username -> { password, role, displayName, avatar }
+// In-memory databases
+const users = {};       // username -> { password, role, displayName, avatar, bio }
 const activeUsers = {}; // socket.id -> username
 const userSockets = {}; // username -> socket.id
 
-// Pre-create Owner
-users['RS FLAGS'] = {
-    password: '123',
+// Pre-create/Enforce Owner Account
+const OWNER_USERNAME = 'gw.akira';
+users[OWNER_USERNAME] = {
+    password: 'Akira@ys7',
     role: 'RS FLAGS / OWNER',
-    displayName: 'RS FLAGS OWNER',
-    avatar: ''
+    displayName: 'AKIRA (OWNER)',
+    avatar: '',
+    bio: 'Server Owner & Administrator'
 };
 
 io.on('connection', (socket) => {
 
     socket.on('authenticate', ({ username, password, action }) => {
-        if (!username || !password) return socket.emit('auth_error', 'Fill all fields.');
+        if (!username || !password) return socket.emit('auth_error', 'Please fill in all fields.');
 
-        if (action === 'register') {
-            if (users[username]) return socket.emit('auth_error', 'Username taken.');
-            users[username] = { password, role: 'MEMBER', displayName: username, avatar: '' };
+        // Enforce Owner credentials
+        if (username === OWNER_USERNAME) {
+            if (password !== users[OWNER_USERNAME].password) {
+                return socket.emit('auth_error', 'Invalid password for Owner account.');
+            }
+            users[OWNER_USERNAME].role = 'RS FLAGS / OWNER'; // Lock owner role
+        } else if (action === 'register') {
+            if (users[username]) return socket.emit('auth_error', 'Username already taken.');
+            users[username] = { 
+                password, 
+                role: 'MEMBER', 
+                displayName: username, 
+                avatar: '', 
+                bio: 'Hey there! I am using YS Chat.' 
+            };
         } else if (action === 'login') {
             if (!users[username] || users[username].password !== password) {
-                return socket.emit('auth_error', 'Invalid credentials.');
+                return socket.emit('auth_error', 'Invalid username or password.');
             }
         }
 
@@ -45,19 +59,35 @@ io.on('connection', (socket) => {
             username,
             role: users[username].role,
             displayName: users[username].displayName,
-            avatar: users[username].avatar
+            avatar: users[username].avatar,
+            bio: users[username].bio || ''
         });
 
         io.emit('update_online_list', getOnlineUsers());
         io.emit('user_joined', { username, displayName: users[username].displayName });
     });
 
-    socket.on('update_profile', ({ displayName, avatar }) => {
+    socket.on('update_profile', ({ displayName, avatar, bio }) => {
         const username = activeUsers[socket.id];
         if (username && users[username]) {
             if (displayName) users[username].displayName = displayName;
             if (avatar !== undefined) users[username].avatar = avatar;
+            if (bio !== undefined) users[username].bio = bio;
+            
+            socket.emit('profile_updated', users[username]);
             io.emit('update_online_list', getOnlineUsers());
+        }
+    });
+
+    // Custom Role Assigning (Owner Only)
+    socket.on('assign_role', ({ targetUsername, newRole }) => {
+        const adminUsername = activeUsers[socket.id];
+        if (adminUsername && users[adminUsername].role === 'RS FLAGS / OWNER') {
+            if (users[targetUsername]) {
+                users[targetUsername].role = newRole;
+                io.emit('update_online_list', getOnlineUsers());
+                io.emit('system_message', `${targetUsername}'s role was updated to: ${newRole}`);
+            }
         }
     });
 
@@ -71,6 +101,7 @@ io.on('connection', (socket) => {
             username,
             displayName: user.displayName || username,
             avatar: user.avatar || '',
+            bio: user.bio || '',
             role: user.role,
             text: data.text || '',
             images: data.images || [],
@@ -86,7 +117,7 @@ io.on('connection', (socket) => {
         io.emit('message_deleted', msgId);
     });
 
-    // --- WEBRTC SIGNALING ROUTING ---
+    // --- ISOLATED WEBRTC CALL ROUTING ---
     socket.on('call_user', ({ targetUsername, signalData, isVideo }) => {
         const callerUsername = activeUsers[socket.id];
         const targetSocketId = userSockets[targetUsername];
@@ -98,10 +129,12 @@ io.on('connection', (socket) => {
                 fromUsername: callerUsername,
                 fromDisplayName: callerInfo.displayName || callerUsername,
                 fromAvatar: callerInfo.avatar || '',
-                isVideo
+                fromBio: callerInfo.bio || '',
+                isVideo,
+                isOwnerCall: (targetUsername === OWNER_USERNAME || callerUsername === OWNER_USERNAME)
             });
         } else {
-            socket.emit('call_failed', 'User is offline or unavailable.');
+            socket.emit('call_failed', 'User is currently offline or unavailable.');
         }
     });
 
@@ -162,6 +195,7 @@ function getOnlineUsers() {
                 username: uname,
                 displayName: users[uname].displayName || uname,
                 avatar: users[uname].avatar || '',
+                bio: users[uname].bio || '',
                 role: users[uname].role
             });
         }

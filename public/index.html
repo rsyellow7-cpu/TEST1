@@ -3,95 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RS FLAGS - Chat & Calls</title>
+    <title>RS FLAGS - YS Edition</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', 'Consolas', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { background: #0a0412; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
         #matrix-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.35; pointer-events: none; }
-        
+
         /* Auth Screen */
         #auth-screen { z-index: 10; background: rgba(18, 8, 33, 0.95); padding: 30px 20px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; border: 1px solid #b15eff; box-shadow: 0 0 25px rgba(177, 94, 255, 0.35); }
         #auth-screen input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; font-size: 16px; }
-        #auth-screen button { width: 48%; padding: 12px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; transition: 0.2s; font-size: 15px; }
+        .remember-box { display: flex; align-items: center; gap: 8px; font-size: 0.85em; color: #b15eff; margin: 8px 0; justify-content: start; }
+        #auth-screen button { width: 48%; padding: 12px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; transition: 0.2s; font-size: 15px; }
         #auth-screen button:hover { background: #ff5ed1; color: #000; box-shadow: 0 0 15px #ff5ed1; }
-        
-        /* Main Chat Screen */
+
+        /* Main Screen */
         #chat-screen { display: none; z-index: 10; width: 95%; max-width: 1000px; height: 90vh; height: 90dvh; background: rgba(15, 6, 28, 0.92); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 35px rgba(255, 94, 209, 0.25); position: relative; }
-        #sidebar { width: 280px; background: rgba(22, 10, 40, 0.95); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 20; }
+        #sidebar { width: 300px; background: rgba(22, 10, 40, 0.95); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 20; }
         .brand-logo { font-size: 1.4em; font-weight: 900; letter-spacing: 2px; text-align: center; border-bottom: 1px dashed #b15eff; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .logo-y { color: #b15eff; text-shadow: 0 0 12px #b15eff; }
         .logo-s { color: #ff5ed1; text-shadow: 0 0 12px #ff5ed1; }
-        
-        .my-profile-box { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(35, 14, 61, 0.6); border: 1px solid #5a1b8e; border-radius: 8px; margin-bottom: 12px; }
-        .avatar-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ff5ed1; background: #120624; flex-shrink: 0; }
+
+        .my-profile-box { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(35, 14, 61, 0.6); border: 1px solid #5a1b8e; border-radius: 8px; margin-bottom: 12px; }
+        .profile-row { display: flex; align-items: center; gap: 10px; }
+        .avatar-img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 1px solid #ff5ed1; background: #120624; flex-shrink: 0; }
+        .user-bio-text { font-size: 0.75em; color: #d0a3ff; font-style: italic; word-break: break-word; }
+
         .edit-prof-btn { background: #2a0845; color: #ff5ed1; border: 1px solid #ff5ed1; font-size: 0.75em; padding: 4px 10px; border-radius: 10px; cursor: pointer; margin-top: 3px; font-weight: bold; }
-        
+        .edit-prof-btn:hover { background: #ff5ed1; color: #000; }
+
         #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 4, 18, 0.75); width: 100%; height: 100%; }
         #mobile-header { display: none; background: #160a28; padding: 10px 15px; border-bottom: 1px solid #3c125d; align-items: center; justify-content: space-between; }
         .toggle-sidebar-btn { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85em; }
-        
+
         #messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         .msg { background: rgba(35, 14, 61, 0.75); padding: 10px 12px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 85%; word-break: break-word; color: #ffffff; display: flex; gap: 10px; }
         .msg-body { flex: 1; min-width: 0; }
-        .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; color: #ff5ed1; display: flex; justify-content: space-between; }
-        .badge-owner { color: #ffffff; background: #ff2a85; padding: 1px 6px; border-radius: 4px; font-size: 0.7em; }
-        
+        .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 2px; color: #ff5ed1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .badge-owner { color: #ffffff; background: #ff2a85; padding: 1px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; }
+        .badge-custom { color: #00e676; border: 1px solid #00e676; padding: 1px 5px; border-radius: 4px; font-size: 0.7em; }
+
         #input-area { display: flex; padding: 12px; background: rgba(22, 10, 40, 0.95); gap: 8px; align-items: center; border-top: 1px solid #3c125d; }
         #input-area input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #b15eff; background: #0a0412; color: #ffffff; outline: none; font-size: 15px; }
         #input-area button { background: #2a0845; border: 1px solid #ff5ed1; padding: 10px 16px; color: #ffffff; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
-        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a0845; font-size: 0.9em; }
-        .call-action-btns { display: flex; gap: 5px; }
-        .call-icon-btn { background: #2a0845; border: 1px solid #ff5ed1; color: #ff5ed1; border-radius: 50%; width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 14px; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #2a0845; font-size: 0.88em; }
+        .user-item-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+        .call-action-btns { display: flex; gap: 4px; flex-shrink: 0; }
+        .call-icon-btn { background: #2a0845; border: 1px solid #ff5ed1; color: #ff5ed1; border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 13px; }
         .call-icon-btn:hover { background: #ff5ed1; color: #000; }
+        .admin-btn { background: #ff2a85; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.7em; margin-left: 2px; }
 
-        /* ================= INCOMING CALL MODAL ================= */
-        #incoming-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 300; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .incoming-card { background: #160a28; border: 2px solid #ff5ed1; border-radius: 16px; padding: 25px; text-align: center; width: 90%; max-width: 320px; box-shadow: 0 0 30px #ff5ed1; animation: pulse 1.5s infinite; }
-        .incoming-avatar { width: 85px; height: 85px; border-radius: 50%; border: 3px solid #b15eff; margin: 12px 0; object-fit: cover; }
+        /* Incoming Call Popup Modal */
+        #incoming-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.88); z-index: 300; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .incoming-card { background: #160a28; border: 2px solid #ff5ed1; border-radius: 16px; padding: 25px; text-align: center; width: 90%; max-width: 320px; box-shadow: 0 0 30px #ff5ed1; }
+        .incoming-avatar { width: 85px; height: 85px; border-radius: 50%; border: 3px solid #b15eff; margin: 10px 0; object-fit: cover; }
         .incoming-actions { display: flex; justify-content: space-around; margin-top: 20px; }
-        .btn-accept { background: #00e676; color: #000; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 1em; box-shadow: 0 0 15px #00e676; }
-        .btn-decline { background: #ff2a85; color: #fff; border: none; padding: 12px 24px; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 1em; box-shadow: 0 0 15px #ff2a85; }
+        .btn-accept { background: #00e676; color: #000; border: none; padding: 12px 22px; border-radius: 25px; font-weight: bold; cursor: pointer; }
+        .btn-decline { background: #ff2a85; color: #fff; border: none; padding: 12px 22px; border-radius: 25px; font-weight: bold; cursor: pointer; }
 
-        /* ================= ACTIVE CALL INTERFACE OVERLAY ================= */
+        /* Active Call Interface */
         #active-call-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #08030e; z-index: 250; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px 15px; }
         .call-header-bar { text-align: center; margin-top: 10px; z-index: 10; }
         .call-timer { color: #00e676; font-family: monospace; font-size: 1.1em; margin-top: 4px; font-weight: bold; }
-        
         .video-grid { position: relative; width: 100%; max-width: 800px; flex: 1; margin: 15px 0; background: #120624; border-radius: 16px; border: 1px solid #b15eff; overflow: hidden; display: flex; justify-content: center; align-items: center; }
         #remote-video { width: 100%; height: 100%; object-fit: cover; background: #0a0412; }
-        #local-video { position: absolute; bottom: 15px; right: 15px; width: 110px; height: 150px; border-radius: 10px; border: 2px solid #ff5ed1; object-fit: cover; background: #000; box-shadow: 0 0 10px rgba(0,0,0,0.8); z-index: 5; }
-        
+        #local-video { position: absolute; bottom: 15px; right: 15px; width: 110px; height: 150px; border-radius: 10px; border: 2px solid #ff5ed1; object-fit: cover; background: #000; z-index: 5; }
         .voice-call-avatar-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
         .voice-avatar-large { width: 130px; height: 130px; border-radius: 50%; border: 3px solid #ff5ed1; box-shadow: 0 0 25px #ff5ed1; }
-
         .call-toolbar { display: flex; gap: 15px; margin-bottom: 20px; z-index: 10; }
-        .tool-btn { background: rgba(42, 8, 69, 0.9); border: 1px solid #b15eff; color: #fff; width: 52px; height: 52px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.3em; cursor: pointer; transition: 0.2s; }
-        .tool-btn:hover { background: #ff5ed1; color: #000; }
-        .tool-btn.active-off { background: #ff2a85; border-color: #ff2a85; color: #fff; }
+        .tool-btn { background: rgba(42, 8, 69, 0.9); border: 1px solid #b15eff; color: #fff; width: 52px; height: 52px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.3em; cursor: pointer; }
+        .tool-btn.active-off { background: #ff2a85; border-color: #ff2a85; }
         .btn-end-hangup { background: #ff2a85; border: none; color: #fff; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5em; cursor: pointer; box-shadow: 0 0 20px #ff2a85; }
 
-        @keyframes pulse { 0% { box-shadow: 0 0 15px #ff5ed1; } 50% { box-shadow: 0 0 30px #ff5ed1; } 100% { box-shadow: 0 0 15px #ff5ed1; } }
+        /* Profile Modal */
+        #profile-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: #120624; border: 1px solid #b15eff; border-radius: 12px; padding: 20px; width: 90%; max-width: 340px; text-align: center; }
+        .modal-content img { width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ff5ed1; margin: 10px 0; }
+        .modal-input { width: 100%; padding: 8px; margin: 6px 0 12px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; font-size: 14px; }
         
         @media (max-width: 768px) {
             #chat-screen { width: 100%; height: 100dvh; border-radius: 0; border: none; }
             #sidebar { position: absolute; top: 0; left: 0; height: 100%; transform: translateX(-100%); }
             #sidebar.active { transform: translateX(0); }
             #mobile-header { display: flex; }
-            #local-video { width: 90px; height: 120px; bottom: 10px; right: 10px; }
         }
     </style>
 </head>
 <body>
     <canvas id="matrix-bg"></canvas>
 
-    <!-- Authentication Screen -->
+    <!-- Auth Screen -->
     <div id="auth-screen">
         <div class="brand-logo" style="justify-content: center;"><span class="logo-y">Y</span><span class="logo-s">S</span></div>
-        <p style="font-size: 0.8em; color: #b15eff; margin: 8px 0 15px 0;">RS FLAGS CHAT & CALLS</p>
+        <p style="font-size: 0.8em; color: #b15eff; margin: 8px 0 15px 0;">RS FLAGS CHAT</p>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
+        <div class="remember-box">
+            <input type="checkbox" id="remember-me" checked>
+            <label for="remember-me">Save Login Info</label>
+        </div>
         <div style="display: flex; justify-content: space-between;">
             <button onclick="auth('login')">Log In</button>
             <button onclick="auth('register')">Register</button>
@@ -99,7 +110,7 @@
         <p id="auth-err" style="color: #ff5ed1; font-size: 0.8em; margin-top: 10px;"></p>
     </div>
 
-    <!-- Main Chat Screen -->
+    <!-- Main Screen -->
     <div id="chat-screen">
         <div id="sidebar">
             <div class="brand-logo">
@@ -108,11 +119,16 @@
             </div>
             
             <div class="my-profile-box">
-                <img id="my-avatar" class="avatar-img" src="">
-                <div style="overflow: hidden;">
-                    <div id="my-display-name" style="font-weight:bold; font-size:0.9em; color:#ffffff;">Guest</div>
-                    <div id="my-username" style="font-size:0.75em; color:#b15eff;">@guest</div>
+                <div class="profile-row">
+                    <img id="my-avatar" class="avatar-img" src="">
+                    <div style="overflow: hidden;">
+                        <div id="my-display-name" style="font-weight:bold; font-size:0.9em; color:#ffffff;">Guest</div>
+                        <div id="my-username" style="font-size:0.75em; color:#b15eff;">@guest</div>
+                        <div id="my-role-badge" style="margin-top:2px;"></div>
+                    </div>
                 </div>
+                <div id="my-bio" class="user-bio-text">No bio set...</div>
+                <button class="edit-prof-btn" onclick="openProfileModal()">✏️ Edit Profile & Bio</button>
             </div>
 
             <p style="font-size: 0.8em; color: #b15eff; margin: 5px 0;">ONLINE USERS</p>
@@ -136,12 +152,13 @@
         </div>
     </div>
 
-    <!-- INCOMING CALL POPUP MODAL -->
+    <!-- INCOMING CALL MODAL -->
     <div id="incoming-modal">
         <div class="incoming-card">
             <h3 style="color:#b15eff;" id="incoming-type-title">Incoming Call</h3>
             <img id="incoming-avatar-img" class="incoming-avatar" src="">
             <h2 id="incoming-caller-name" style="color:#ffffff; font-size: 1.2em;">Caller Name</h2>
+            <p id="incoming-caller-bio" style="color:#d0a3ff; font-size:0.8em; margin: 4px 0 12px 0; font-style:italic;"></p>
             <div class="incoming-actions">
                 <button class="btn-accept" onclick="acceptIncomingCall()">Accept</button>
                 <button class="btn-decline" onclick="declineIncomingCall()">Decline</button>
@@ -149,32 +166,55 @@
         </div>
     </div>
 
-    <!-- ACTIVE CALL INTERFACE OVERLAY (PICKED UP STATE) -->
+    <!-- ACTIVE CALL OVERLAY -->
     <div id="active-call-overlay">
         <div class="call-header-bar">
             <h2 id="active-user-title" style="color: #ff5ed1; font-size: 1.2em;">User Name</h2>
             <div id="active-call-timer" class="call-timer">Calling...</div>
         </div>
 
-        <div class="video-grid" id="video-grid-box">
+        <div class="video-grid">
             <div id="voice-avatar-placeholder" class="voice-call-avatar-container" style="display: none;">
                 <img id="active-voice-avatar" class="voice-avatar-large" src="">
+                <p id="active-voice-bio" style="color:#d0a3ff; font-size:0.85em; margin-top:10px; font-style:italic;"></p>
             </div>
             <video id="remote-video" autoplay playsinline></video>
             <video id="local-video" autoplay playsinline muted></video>
         </div>
 
         <div class="call-toolbar">
-            <button id="toggle-mic-btn" class="tool-btn" onclick="toggleMuteMic()" title="Mute/Unmute Mic">🎙️</button>
-            <button id="toggle-cam-btn" class="tool-btn" onclick="toggleCam()" title="Camera On/Off">📹</button>
-            <button class="btn-end-hangup" onclick="hangupCall()" title="End Call">📞</button>
+            <button id="toggle-mic-btn" class="tool-btn" onclick="toggleMuteMic()">🎙️</button>
+            <button id="toggle-cam-btn" class="tool-btn" onclick="toggleCam()">📹</button>
+            <button class="btn-end-hangup" onclick="hangupCall()">📞</button>
+        </div>
+    </div>
+
+    <!-- PROFILE MODAL -->
+    <div id="profile-modal">
+        <div class="modal-content">
+            <h3 style="color: #ff5ed1;">Edit Profile</h3>
+            <img id="preview-avatar" src="">
+            <div>
+                <input type="file" id="avatar-input" accept="image/*" style="display: none;" onchange="previewAvatar(event)">
+                <button class="edit-prof-btn" onclick="document.getElementById('avatar-input').click()">Change Photo</button>
+            </div>
+            <label style="font-size: 0.75em; color: #b15eff; display: block; text-align: left; margin-top:10px;">Display Name:</label>
+            <input type="text" id="edit-display-name" class="modal-input">
+            
+            <label style="font-size: 0.75em; color: #b15eff; display: block; text-align: left;">Bio:</label>
+            <input type="text" id="edit-bio" class="modal-input" placeholder="Write a short bio...">
+
+            <div style="display:flex; justify-content:space-around; gap:10px;">
+                <button class="edit-prof-btn" style="flex:1; padding:8px;" onclick="saveProfile()">Save</button>
+                <button class="edit-prof-btn" style="flex:1; padding:8px;" onclick="closeProfileModal()">Cancel</button>
+            </div>
         </div>
     </div>
 
     <script>
         const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b15eff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
-        // Canvas Background Matrix Effect
+        // Matrix Rain
         const canvas = document.getElementById('matrix-bg');
         const ctx = canvas.getContext('2d');
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -201,8 +241,178 @@
 
         const socket = io();
         let currentUser = null;
+        let tempAvatarData = null;
 
-        // --- WEBRTC STATE ---
+        // Auto Load Saved Info
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedInfo = localStorage.getItem('ys_user_creds');
+            if (savedInfo) {
+                try {
+                    const creds = JSON.parse(savedInfo);
+                    document.getElementById('username').value = creds.username;
+                    document.getElementById('password').value = creds.password;
+                    // Auto login
+                    socket.emit('authenticate', { username: creds.username, password: creds.password, action: 'login' });
+                } catch(e) {}
+            }
+        });
+
+        function auth(action) {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            if (!username || !password) return alert('Fill credentials.');
+
+            if (rememberMe) {
+                localStorage.setItem('ys_user_creds', JSON.stringify({ username, password }));
+            } else {
+                localStorage.removeItem('ys_user_creds');
+            }
+
+            socket.emit('authenticate', { username, password, action });
+        }
+
+        function logout() {
+            localStorage.removeItem('ys_user_creds');
+            window.location.reload();
+        }
+
+        socket.on('auth_error', (msg) => document.getElementById('auth-err').innerText = msg);
+
+        socket.on('auth_success', (user) => {
+            currentUser = user;
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
+            updateProfileUI(user);
+        });
+
+        function updateProfileUI(user) {
+            document.getElementById('my-display-name').innerText = user.displayName || user.username;
+            document.getElementById('my-username').innerText = `@${user.username}`;
+            document.getElementById('my-avatar').src = user.avatar || DEFAULT_AVATAR;
+            document.getElementById('my-bio').innerText = user.bio || 'No bio set...';
+            
+            const badgeBox = document.getElementById('my-role-badge');
+            if (user.role === 'RS FLAGS / OWNER') {
+                badgeBox.innerHTML = `<span class="badge-owner">OWNER</span>`;
+            } else if (user.role && user.role !== 'MEMBER') {
+                badgeBox.innerHTML = `<span class="badge-custom">${user.role}</span>`;
+            } else {
+                badgeBox.innerHTML = '';
+            }
+        }
+
+        socket.on('profile_updated', (updatedUser) => {
+            currentUser = updatedUser;
+            updateProfileUI(updatedUser);
+        });
+
+        socket.on('update_online_list', (users) => {
+            const list = document.getElementById('online-list');
+            list.innerHTML = '';
+            users.forEach(u => {
+                if (u.username === currentUser.username) return;
+                const item = document.createElement('div');
+                item.className = 'user-item';
+                let avatarSrc = u.avatar || DEFAULT_AVATAR;
+                let shownName = u.displayName || u.username;
+
+                let adminTools = '';
+                if (currentUser && currentUser.role === 'RS FLAGS / OWNER') {
+                    adminTools = `
+                        <button class="admin-btn" onclick="kickUser('${u.username}')">Kick</button>
+                        <button class="admin-btn" style="background:#00e676; color:#000;" onclick="giveRolePrompt('${u.username}')">Role</button>
+                    `;
+                }
+
+                item.innerHTML = `
+                    <div class="user-item-left">
+                        <img class="avatar-img" style="width:30px; height:30px;" src="${avatarSrc}">
+                        <div style="overflow:hidden;">
+                            <div style="font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${shownName}</div>
+                            <div style="font-size:0.75em; color:#d0a3ff; font-style:italic;">${u.bio || ''}</div>
+                        </div>
+                    </div> 
+                    <div class="call-action-btns">
+                        <button class="call-icon-btn" onclick="startCall('${u.username}', '${shownName}', '${avatarSrc}', '${u.bio}', false)" title="Voice Call">📞</button>
+                        <button class="call-icon-btn" onclick="startCall('${u.username}', '${shownName}', '${avatarSrc}', '${u.bio}', true)" title="Video Call">📹</button>
+                        ${adminTools}
+                    </div>`;
+                list.appendChild(item);
+            });
+        });
+
+        socket.on('kicked', () => { alert('Kicked by Owner.'); logout(); });
+
+        function kickUser(targetUsername) { socket.emit('kick_user', targetUsername); }
+        function giveRolePrompt(targetUsername) {
+            const newRole = prompt(`Assign custom role for ${targetUsername}:`);
+            if (newRole) socket.emit('assign_role', { targetUsername, newRole });
+        }
+
+        socket.on('receive_message', (data) => {
+            const msgBox = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'msg';
+            
+            let roleBadge = '';
+            if (data.role === 'RS FLAGS / OWNER') roleBadge = `<span class="badge-owner">OWNER</span>`;
+            else if (data.role && data.role !== 'MEMBER') roleBadge = `<span class="badge-custom">${data.role}</span>`;
+
+            div.innerHTML = `
+                <img class="avatar-img" src="${data.avatar || DEFAULT_AVATAR}">
+                <div class="msg-body">
+                    <div class="author">
+                        <span>${data.displayName} ${roleBadge} <span style="font-weight:normal; font-size:0.75em; color:#b15eff">${data.time}</span></span>
+                    </div>
+                    <div style="font-size:0.75em; color:#d0a3ff; font-style:italic; margin-bottom:4px;">${data.bio || ''}</div>
+                    <div>${data.text}</div>
+                </div>`;
+            msgBox.appendChild(div);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        });
+
+        function sendMsg() {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if (text) {
+                socket.emit('send_message', { text });
+                input.value = '';
+            }
+        }
+
+        // --- PROFILE EDIT MODAL ---
+        function openProfileModal() {
+            document.getElementById('profile-modal').style.display = 'flex';
+            document.getElementById('preview-avatar').src = currentUser.avatar || DEFAULT_AVATAR;
+            document.getElementById('edit-display-name').value = currentUser.displayName || currentUser.username;
+            document.getElementById('edit-bio').value = currentUser.bio || '';
+            tempAvatarData = currentUser.avatar;
+        }
+
+        function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
+
+        async function previewAvatar(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    tempAvatarData = e.target.result;
+                    document.getElementById('preview-avatar').src = tempAvatarData;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveProfile() {
+            const displayName = document.getElementById('edit-display-name').value.trim();
+            const bio = document.getElementById('edit-bio').value.trim();
+            socket.emit('update_profile', { displayName, avatar: tempAvatarData, bio });
+            closeProfileModal();
+        }
+
+        // --- ISOLATED WEBRTC CALL ENGINE ---
         let peerConnection = null;
         let localStream = null;
         let callTargetUsername = null;
@@ -219,82 +429,11 @@
             ] 
         };
 
-        function auth(action) {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            if (!username || !password) return alert('Enter credentials.');
-            socket.emit('authenticate', { username, password, action });
-        }
-
-        function logout() { window.location.reload(); }
-
-        socket.on('auth_error', (msg) => document.getElementById('auth-err').innerText = msg);
-
-        socket.on('auth_success', (user) => {
-            currentUser = user;
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('my-display-name').innerText = user.displayName || user.username;
-            document.getElementById('my-username').innerText = `@${user.username}`;
-            document.getElementById('my-avatar').src = user.avatar || DEFAULT_AVATAR;
-        });
-
-        socket.on('update_online_list', (users) => {
-            const list = document.getElementById('online-list');
-            list.innerHTML = '';
-            users.forEach(u => {
-                if (u.username === currentUser.username) return;
-                const item = document.createElement('div');
-                item.className = 'user-item';
-                let avatarSrc = u.avatar || DEFAULT_AVATAR;
-                let shownName = u.displayName || u.username;
-
-                item.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <img class="avatar-img" style="width:28px; height:28px;" src="${avatarSrc}">
-                        <span>${shownName}</span>
-                    </div> 
-                    <div class="call-action-btns">
-                        <button class="call-icon-btn" onclick="startCall('${u.username}', '${shownName}', '${avatarSrc}', false)" title="Voice Call">📞</button>
-                        <button class="call-icon-btn" onclick="startCall('${u.username}', '${shownName}', '${avatarSrc}', true)" title="Video Call">📹</button>
-                    </div>`;
-                list.appendChild(item);
-            });
-        });
-
-        socket.on('receive_message', (data) => {
-            const msgBox = document.getElementById('messages');
-            const div = document.createElement('div');
-            div.className = 'msg';
-            div.innerHTML = `
-                <img class="avatar-img" src="${data.avatar || DEFAULT_AVATAR}">
-                <div class="msg-body">
-                    <div class="author">
-                        <span>${data.displayName} <span style="font-weight:normal; font-size:0.75em; color:#b15eff">${data.time}</span></span>
-                    </div>
-                    <div>${data.text}</div>
-                </div>`;
-            msgBox.appendChild(div);
-            msgBox.scrollTop = msgBox.scrollHeight;
-        });
-
-        function sendMsg() {
-            const input = document.getElementById('msg-input');
-            const text = input.value.trim();
-            if (text) {
-                socket.emit('send_message', { text });
-                input.value = '';
-            }
-        }
-
-        // ================= WEBRTC CALL ENGINE =================
-
-        async function startCall(targetUsername, targetDisplayName, targetAvatar, video) {
+        async function startCall(targetUsername, targetDisplayName, targetAvatar, targetBio, video) {
             callTargetUsername = targetUsername;
             isVideoCall = video;
 
-            // Open Active Call Overlay immediately for caller
-            openActiveCallUI(targetDisplayName, targetAvatar, 'Ringing...');
+            openActiveCallUI(targetDisplayName, targetAvatar, targetBio, 'Ringing...');
 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
@@ -313,20 +452,19 @@
 
                 socket.emit('call_user', { targetUsername, signalData: offer, isVideo: isVideoCall });
             } catch (err) {
-                alert("Microphone/Camera permission denied or HTTPS is missing.");
+                alert("Microphone/Camera permission denied or non-HTTPS URL.");
                 closeCallUI();
             }
         }
 
-        // --- INCOMING CALL HANDLER ---
-        socket.on('incoming_call', ({ signal, fromUsername, fromDisplayName, fromAvatar, isVideo }) => {
+        socket.on('incoming_call', ({ signal, fromUsername, fromDisplayName, fromAvatar, fromBio, isVideo }) => {
             callTargetUsername = fromUsername;
             pendingIncomingSignal = signal;
             isVideoCall = isVideo;
 
-            // Display Incoming Call Dialog Modal
             document.getElementById('incoming-type-title').innerText = isVideo ? 'Incoming Video Call' : 'Incoming Voice Call';
             document.getElementById('incoming-caller-name').innerText = fromDisplayName;
+            document.getElementById('incoming-caller-bio').innerText = fromBio || '';
             document.getElementById('incoming-avatar-img').src = fromAvatar || DEFAULT_AVATAR;
             document.getElementById('incoming-modal').style.display = 'flex';
         });
@@ -334,11 +472,11 @@
         async function acceptIncomingCall() {
             document.getElementById('incoming-modal').style.display = 'none';
 
-            // Get target info from incoming dataset
             const callerName = document.getElementById('incoming-caller-name').innerText;
             const callerAvatar = document.getElementById('incoming-avatar-img').src;
+            const callerBio = document.getElementById('incoming-caller-bio').innerText;
 
-            openActiveCallUI(callerName, callerAvatar, 'Connecting...');
+            openActiveCallUI(callerName, callerAvatar, callerBio, 'Connecting...');
 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
@@ -359,7 +497,7 @@
                 socket.emit('answer_call', { targetUsername: callTargetUsername, signalData: answer });
                 startTimer();
             } catch (err) {
-                alert("Could not access mic/camera.");
+                alert("Microphone/Camera permission error.");
                 hangupCall();
             }
         }
@@ -377,19 +515,9 @@
             }
         });
 
-        socket.on('call_rejected', () => {
-            alert('Call was declined.');
-            closeCallUI();
-        });
-
-        socket.on('call_ended', () => {
-            closeCallUI();
-        });
-
-        socket.on('call_failed', (msg) => {
-            alert(msg);
-            closeCallUI();
-        });
+        socket.on('call_rejected', () => { alert('Call declined.'); closeCallUI(); });
+        socket.on('call_ended', () => { closeCallUI(); });
+        socket.on('call_failed', (msg) => { alert(msg); closeCallUI(); });
 
         socket.on('ice_candidate', ({ candidate }) => {
             if (peerConnection && candidate) {
@@ -409,12 +537,11 @@
             peerConnection.ontrack = (event) => {
                 const remoteVid = document.getElementById('remote-video');
                 remoteVid.srcObject = event.streams[0];
-                remoteVid.play().catch(e => console.error("Video play error:", e));
+                remoteVid.play().catch(e => console.error(e));
             };
         }
 
-        // --- CALL UI CONTROLS & TIMERS ---
-        function openActiveCallUI(name, avatar, statusText) {
+        function openActiveCallUI(name, avatar, bio, statusText) {
             document.getElementById('active-call-overlay').style.display = 'flex';
             document.getElementById('active-user-title').innerText = name;
             document.getElementById('active-call-timer').innerText = statusText;
@@ -426,6 +553,7 @@
             if (!isVideoCall) {
                 voicePlaceholder.style.display = 'flex';
                 document.getElementById('active-voice-avatar').src = avatar || DEFAULT_AVATAR;
+                document.getElementById('active-voice-bio').innerText = bio || '';
                 remoteVid.style.display = 'none';
                 localVid.style.display = 'none';
             } else {
@@ -448,24 +576,20 @@
 
         function toggleMuteMic() {
             if (localStream) {
-                const audioTrack = localStream.getAudioTracks()[0];
-                if (audioTrack) {
-                    audioTrack.enabled = !audioTrack.enabled;
-                    const btn = document.getElementById('toggle-mic-btn');
-                    btn.classList.toggle('active-off', !audioTrack.enabled);
-                    btn.innerText = audioTrack.enabled ? '🎙️' : '🔇';
+                const track = localStream.getAudioTracks()[0];
+                if (track) {
+                    track.enabled = !track.enabled;
+                    document.getElementById('toggle-mic-btn').classList.toggle('active-off', !track.enabled);
                 }
             }
         }
 
         function toggleCam() {
             if (localStream && isVideoCall) {
-                const videoTrack = localStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    videoTrack.enabled = !videoTrack.enabled;
-                    const btn = document.getElementById('toggle-cam-btn');
-                    btn.classList.toggle('active-off', !videoTrack.enabled);
-                    btn.innerText = videoTrack.enabled ? '📹' : '📷';
+                const track = localStream.getVideoTracks()[0];
+                if (track) {
+                    track.enabled = !track.enabled;
+                    document.getElementById('toggle-cam-btn').classList.toggle('active-off', !track.enabled);
                 }
             }
         }
