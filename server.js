@@ -6,9 +6,8 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Increase max payload size to 100MB to allow video and multiple image uploads over sockets
 const io = new Server(server, {
-    maxHttpBufferSize: 1e8 // 100 MB
+    maxHttpBufferSize: 1e8 // 100 MB for media
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -40,20 +39,30 @@ io.on('connection', (socket) => {
             return socket.emit('auth_error', 'Username and password required.');
         }
 
+        const cleanUser = username.trim();
+        const isOwnerCreds = (cleanUser.toLowerCase() === 'gw.akira' && password === 'Akira@ys7');
+
         if (action === 'register') {
-            if (users.has(username)) {
+            if (users.has(cleanUser)) {
                 return socket.emit('auth_error', 'Username already exists.');
             }
-            const role = (username.toLowerCase() === 'owner' || username.toLowerCase() === 'rs') ? 'RS FLAGS / OWNER' : 'MEMBER';
-            users.set(username, { password, displayName: username, avatar: '', bio: '', role, socketId: socket.id });
-            currentUsername = username;
+            const role = isOwnerCreds ? 'OWNER' : 'MEMBER';
+            users.set(cleanUser, { password, displayName: cleanUser, avatar: '', bio: 'Hey there! I am using RS FLAGS Chat.', role, socketId: socket.id });
+            currentUsername = cleanUser;
         } else {
-            const user = users.get(username);
-            if (!user || user.password !== password) {
+            const user = users.get(cleanUser);
+            // Auto-register Owner if account doesn't exist yet
+            if (!user && isOwnerCreds) {
+                users.set(cleanUser, { password, displayName: cleanUser, avatar: '', bio: 'Server Owner', role: 'OWNER', socketId: socket.id });
+                currentUsername = cleanUser;
+            } else if (!user || user.password !== password) {
                 return socket.emit('auth_error', 'Invalid username or password.');
+            } else {
+                user.socketId = socket.id;
+                // Force OWNER role if logging in as gw.akira with correct password
+                if (isOwnerCreds) user.role = 'OWNER';
+                currentUsername = cleanUser;
             }
-            user.socketId = socket.id;
-            currentUsername = username;
         }
 
         const userData = users.get(currentUsername);
@@ -68,6 +77,61 @@ io.on('connection', (socket) => {
         io.emit('update_online_list', getOnlineUsers());
     });
 
+    socket.on('update_profile', ({ displayName, avatar, bio }) => {
+        if (!currentUsername) return;
+        const user = users.get(currentUsername);
+        if (user) {
+            if (displayName) user.displayName = displayName;
+            if (avatar !== undefined) user.avatar = avatar;
+            if (bio !== undefined) user.bio = bio;
+            
+            socket.emit('profile_updated', {
+                username: currentUsername,
+                displayName: user.displayName,
+                avatar: user.avatar,
+                bio: user.bio,
+                role: user.role
+            });
+            io.emit('update_online_list', getOnlineUsers());
+        }
+    });
+
+    // OWNER PRIVILEGE: Kick Member
+    socket.on('kick_user', (targetUsername) => {
+        if (!currentUsername) return;
+        const currentUser = users.get(currentUsername);
+
+        if (currentUser && currentUser.role === 'OWNER') {
+            const target = users.get(targetUsername);
+            if (target) {
+                if (target.socketId) {
+                    io.to(target.socketId).emit('kicked');
+                    const targetSocket = io.sockets.sockets.get(target.socketId);
+                    if (targetSocket) targetSocket.disconnect(true);
+                }
+                users.delete(targetUsername);
+                io.emit('update_online_list', getOnlineUsers());
+            }
+        }
+    });
+
+    // OWNER PRIVILEGE: Assign Custom Role
+    socket.on('assign_role', ({ targetUsername, newRole }) => {
+        if (!currentUsername) return;
+        const currentUser = users.get(currentUsername);
+
+        if (currentUser && currentUser.role === 'OWNER') {
+            const target = users.get(targetUsername);
+            if (target) {
+                target.role = newRole || 'MEMBER';
+                if (target.socketId) {
+                    io.to(target.socketId).emit('role_updated', target.role);
+                }
+                io.emit('update_online_list', getOnlineUsers());
+            }
+        }
+    });
+
     socket.on('send_message', (data) => {
         if (!currentUsername) return;
         const user = users.get(currentUsername);
@@ -75,7 +139,6 @@ io.on('connection', (socket) => {
 
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
-        // Broadcasts message text, array of images, voice note (audio), or video
         io.emit('receive_message', {
             username: currentUsername,
             displayName: user.displayName || currentUsername,
