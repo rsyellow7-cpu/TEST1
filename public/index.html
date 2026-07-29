@@ -2,80 +2,96 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RS FLAGS - YS Edition</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', 'Consolas', sans-serif; margin: 0; padding: 0; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', 'Consolas', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        body { background: #0a0412; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: relative; }
+        body { background: #0a0412; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
 
-        /* YS Purple, Pink, White Rain Canvas */
+        /* YS Matrix Canvas Background */
         #matrix-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.35; pointer-events: none; }
 
         /* Auth Screen */
-        #auth-screen { z-index: 10; background: rgba(18, 8, 33, 0.95); padding: 30px; border-radius: 12px; width: 340px; text-align: center; border: 1px solid #b15eff; box-shadow: 0 0 25px rgba(177, 94, 255, 0.35); }
-        #auth-screen input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; }
-        #auth-screen button { width: 48%; padding: 10px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; transition: 0.2s; }
+        #auth-screen { z-index: 10; background: rgba(18, 8, 33, 0.95); padding: 30px 20px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; border: 1px solid #b15eff; box-shadow: 0 0 25px rgba(177, 94, 255, 0.35); }
+        #auth-screen input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; font-size: 16px; }
+        #auth-screen button { width: 48%; padding: 12px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; transition: 0.2s; font-size: 15px; }
         #auth-screen button:hover { background: #ff5ed1; color: #000; box-shadow: 0 0 15px #ff5ed1; }
 
-        /* Main Chat Screen */
-        #chat-screen { display: none; z-index: 10; width: 90%; max-width: 950px; height: 85vh; background: rgba(15, 6, 28, 0.92); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 35px rgba(255, 94, 209, 0.25); }
+        /* Main Chat Container */
+        #chat-screen { display: none; z-index: 10; width: 95%; max-width: 1000px; height: 90vh; height: 90dvh; background: rgba(15, 6, 28, 0.92); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 35px rgba(255, 94, 209, 0.25); position: relative; }
         
-        #sidebar { width: 260px; background: rgba(22, 10, 40, 0.85); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; }
+        /* Sidebar */
+        #sidebar { width: 280px; background: rgba(22, 10, 40, 0.95); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 20; }
         
-        /* Logo & Profile Sidebar Header */
-        .brand-logo { font-size: 1.5em; font-weight: 900; letter-spacing: 2px; text-align: center; border-bottom: 1px dashed #b15eff; padding-bottom: 10px; margin-bottom: 10px; }
+        /* Logo & Profile Box */
+        .brand-logo { font-size: 1.4em; font-weight: 900; letter-spacing: 2px; text-align: center; border-bottom: 1px dashed #b15eff; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .logo-y { color: #b15eff; text-shadow: 0 0 12px #b15eff; }
         .logo-s { color: #ff5ed1; text-shadow: 0 0 12px #ff5ed1; }
         .brand-heart { color: #ffffff; text-shadow: 0 0 10px #ffffff; }
 
-        /* User Profile Badge Box */
-        .my-profile-box { display: flex; align-items: center; gap: 10px; padding: 8px; background: rgba(35, 14, 61, 0.6); border: 1px solid #5a1b8e; border-radius: 8px; margin-bottom: 12px; }
-        .avatar-img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1px solid #ff5ed1; background: #120624; flex-shrink: 0; }
-        .edit-prof-btn { background: #2a0845; color: #ff5ed1; border: 1px solid #ff5ed1; font-size: 0.7em; padding: 3px 8px; border-radius: 10px; cursor: pointer; margin-top: 3px; font-weight: bold; }
+        .my-profile-box { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(35, 14, 61, 0.6); border: 1px solid #5a1b8e; border-radius: 8px; margin-bottom: 12px; }
+        .avatar-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ff5ed1; background: #120624; flex-shrink: 0; }
+        .edit-prof-btn { background: #2a0845; color: #ff5ed1; border: 1px solid #ff5ed1; font-size: 0.75em; padding: 4px 10px; border-radius: 10px; cursor: pointer; margin-top: 3px; font-weight: bold; }
         .edit-prof-btn:hover { background: #ff5ed1; color: #000; }
 
-        #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 4, 18, 0.75); }
+        /* Main Chat Window */
+        #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 4, 18, 0.75); width: 100%; height: 100%; }
         
-        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        /* Mobile Header Bar */
+        #mobile-header { display: none; background: #160a28; padding: 10px 15px; border-bottom: 1px solid #3c125d; align-items: center; justify-content: space-between; }
+        .toggle-sidebar-btn { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85em; }
+
+        #messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         
-        .msg { background: rgba(35, 14, 61, 0.75); padding: 10px 14px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 80%; word-break: break-word; position: relative; color: #ffffff; display: flex; gap: 10px; }
-        .msg-body { flex: 1; }
-        .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; color: #ff5ed1; display: flex; justify-content: space-between; align-items: center; }
+        .msg { background: rgba(35, 14, 61, 0.75); padding: 10px 12px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 85%; word-break: break-word; position: relative; color: #ffffff; display: flex; gap: 10px; }
+        .msg-body { flex: 1; min-width: 0; }
+        .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; color: #ff5ed1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; }
         
         .badge-owner { color: #ffffff; background: #ff2a85; border: 1px solid #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 0.7em; text-shadow: 0 0 5px #ffffff; }
 
-        .delete-btn { background: transparent; border: none; color: #ff5ed1; font-size: 0.75em; cursor: pointer; margin-left: 10px; opacity: 0.8; }
-        .delete-btn:hover { color: #ffffff; text-decoration: underline; text-shadow: 0 0 5px #ff5ed1; }
+        .delete-btn { background: transparent; border: none; color: #ff5ed1; font-size: 0.75em; cursor: pointer; opacity: 0.85; }
+        .delete-btn:hover { color: #ffffff; text-decoration: underline; }
 
         .image-gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-        .img-card { display: flex; flex-direction: column; align-items: center; background: #120624; padding: 6px; border-radius: 8px; border: 1px solid #5a1b8e; }
-        .img-card img { max-width: 220px; max-height: 220px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid #b15eff; }
+        .img-card { display: flex; flex-direction: column; align-items: center; background: #120624; padding: 6px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 100%; }
+        .img-card img { max-width: 100%; max-height: 220px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid #b15eff; }
         .download-btn { color: #ffffff; font-size: 0.8em; margin-top: 6px; font-weight: bold; cursor: pointer; background: transparent; border: none; }
         .download-btn:hover { color: #ff5ed1; text-decoration: underline; }
 
         .sys-msg { text-align: center; color: #b15eff; font-size: 0.85em; margin: 5px 0; text-shadow: 0 0 5px #5a1b8e; }
         
-        #input-area { display: flex; padding: 15px; background: rgba(22, 10, 40, 0.95); gap: 10px; align-items: center; border-top: 1px solid #3c125d; }
-        #input-area input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #b15eff; background: #0a0412; color: #ffffff; outline: none; }
-        #input-area button { background: #2a0845; border: 1px solid #ff5ed1; padding: 10px 18px; color: #ffffff; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        #input-area { display: flex; padding: 12px; background: rgba(22, 10, 40, 0.95); gap: 8px; align-items: center; border-top: 1px solid #3c125d; }
+        #input-area input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #b15eff; background: #0a0412; color: #ffffff; outline: none; font-size: 15px; }
+        #input-area button { background: #2a0845; border: 1px solid #ff5ed1; padding: 10px 16px; color: #ffffff; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s; white-space: nowrap; font-size: 14px; }
         #input-area button:hover { background: #ff5ed1; color: #000; box-shadow: 0 0 10px #ff5ed1; }
 
         .user-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #2a0845; font-size: 0.9em; color: #ffffff; }
-        .user-item-left { display: flex; align-items: center; gap: 8px; }
-        .kick-btn { background: #ff2a85; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; }
+        .user-item-left { display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; }
+        .kick-btn { background: #ff2a85; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex-shrink: 0; }
 
-        /* Profile Modal Editor */
-        #profile-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
-        .modal-content { background: #120624; border: 1px solid #b15eff; border-radius: 12px; padding: 20px; width: 300px; text-align: center; box-shadow: 0 0 20px #b15eff; }
-        .modal-content img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid #ff5ed1; margin: 10px 0; }
-        .modal-actions { display: flex; justify-content: space-around; margin-top: 15px; }
-        .modal-btn { background: #2a0845; border: 1px solid #ff5ed1; color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        /* Profile Editor Modal */
+        #profile-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
+        .modal-content { background: #120624; border: 1px solid #b15eff; border-radius: 12px; padding: 20px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 0 25px #b15eff; }
+        .modal-content img { width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ff5ed1; margin: 10px 0; }
+        .modal-input { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; text-align: center; font-size: 15px; }
+        .modal-actions { display: flex; justify-content: space-around; margin-top: 15px; gap: 10px; }
+        .modal-btn { flex: 1; background: #2a0845; border: 1px solid #ff5ed1; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .modal-btn:hover { background: #ff5ed1; color: #000; }
 
+        /* Mobile Responsive Viewport Rules */
+        @media (max-width: 768px) {
+            #chat-screen { width: 100%; height: 100dvh; border-radius: 0; border: none; }
+            #sidebar { position: absolute; top: 0; left: 0; height: 100%; transform: translateX(-100%); }
+            #sidebar.active { transform: translateX(0); }
+            #mobile-header { display: flex; }
+            .msg { max-width: 92%; }
+            #auth-screen { margin: 15px; }
+        }
+
         /* Scrollbars */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #0a0412; }
         ::-webkit-scrollbar-thumb { background: #b15eff; border-radius: 3px; }
     </style>
@@ -86,11 +102,11 @@
 
     <!-- Auth Screen -->
     <div id="auth-screen">
-        <div class="brand-logo"><span class="logo-y">Y</span><span class="logo-s">S</span> <span class="brand-heart">♥</span></div>
+        <div class="brand-logo" style="justify-content: center;"><span class="logo-y">Y</span><span class="logo-s">S</span> <span class="brand-heart">♥</span></div>
         <p style="font-size: 0.8em; color: #b15eff; margin: 8px 0 15px 0;">RS FLAGS CHAT</p>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
-        <div>
+        <div style="display: flex; justify-content: space-between;">
             <button onclick="auth('login')">Log In</button>
             <button onclick="auth('register')">Register</button>
         </div>
@@ -100,26 +116,39 @@
     <!-- Main Chat Screen -->
     <div id="chat-screen">
         <div id="sidebar">
-            <div class="brand-logo"><span class="logo-y">Y</span><span class="logo-s">S</span> <span class="brand-heart">♥</span> FLAGS</div>
+            <div class="brand-logo">
+                <span><span class="logo-y">Y</span><span class="logo-s">S</span> <span class="brand-heart">♥</span> FLAGS</span>
+                <button class="toggle-sidebar-btn" style="display:none;" id="sidebar-close-btn" onclick="toggleSidebar()">✕</button>
+            </div>
             
-            <!-- User Profile Box -->
+            <!-- User Profile Card -->
             <div class="my-profile-box">
                 <img id="my-avatar" class="avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b15eff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>">
-                <div>
-                    <div id="my-username" style="font-weight:bold; font-size:0.9em; color:#ffffff;">Guest</div>
+                <div style="overflow: hidden;">
+                    <div id="my-display-name" style="font-weight:bold; font-size:0.9em; color:#ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Guest</div>
+                    <div id="my-username" style="font-size:0.75em; color:#b15eff;">@guest</div>
                     <button class="edit-prof-btn" onclick="openProfileModal()">✏️ Edit Profile</button>
                 </div>
             </div>
 
             <p style="font-size: 0.8em; color: #b15eff; margin: 5px 0;">ONLINE USERS</p>
             <div id="online-list" style="flex: 1; overflow-y: auto;"></div>
+            
+            <button class="edit-prof-btn" style="margin-top: 10px; width: 100%; padding: 8px; border-color: #ff2a85; color: #ff2a85;" onclick="logout()">Logout</button>
         </div>
 
         <div id="chat-main">
+            <!-- Mobile Top Navigation Header -->
+            <div id="mobile-header">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()">👥 Users & Profile</button>
+                <div style="font-weight:bold; color:#ff5ed1; font-size:0.9em;"><span style="color:#b15eff;">Y</span>S CHAT</div>
+            </div>
+
             <div id="messages"></div>
+            
             <div id="input-area">
                 <input type="file" id="img-input" accept="image/*" multiple style="display: none;">
-                <button type="button" onclick="document.getElementById('img-input').click()">🖼️ Photos</button>
+                <button type="button" onclick="document.getElementById('img-input').click()">🖼️</button>
                 <input type="text" id="msg-input" placeholder="Type a message..." onkeydown="if(event.key === 'Enter') sendMsg()">
                 <button id="send-btn" onclick="sendMsg()">Send</button>
             </div>
@@ -129,24 +158,26 @@
     <!-- Profile Editor Modal -->
     <div id="profile-modal">
         <div class="modal-content">
-            <h3 style="color: #ff5ed1; font-size: 1.1em;">Profile Editor</h3>
+            <h3 style="color: #ff5ed1; font-size: 1.1em;">Edit Profile</h3>
             <img id="preview-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b15eff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>">
             <div>
                 <input type="file" id="avatar-input" accept="image/*" style="display: none;" onchange="previewAvatar(event)">
-                <button class="edit-prof-btn" onclick="document.getElementById('avatar-input').click()" style="font-size: 0.85em; padding: 5px 10px;">Choose New Photo</button>
+                <button class="edit-prof-btn" onclick="document.getElementById('avatar-input').click()" style="font-size: 0.85em; padding: 5px 12px; margin-bottom: 10px;">Change Photo</button>
             </div>
+            <label style="font-size: 0.8em; color: #b15eff; display: block; text-align: left;">Display Name:</label>
+            <input type="text" id="edit-display-name" class="modal-input" placeholder="Enter display name">
+            
             <div class="modal-actions">
-                <button class="modal-btn" onclick="saveProfile()">Save DP</button>
+                <button class="modal-btn" onclick="saveProfile()">Save</button>
                 <button class="modal-btn" onclick="closeProfileModal()">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Default Avatar SVG string
         const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b15eff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
-        // --- YS PURPLE, PINK & WHITE RAIN ---
+        // YS Rain Background
         const canvas = document.getElementById('matrix-bg');
         const ctx = canvas.getContext('2d');
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -175,32 +206,71 @@
         }
         setInterval(drawMatrix, 33);
 
-        // --- SOCKET CHAT LOGIC ---
+        // Responsive mobile close button check
+        function updateMobileLayout() {
+            const closeBtn = document.getElementById('sidebar-close-btn');
+            if (window.innerWidth <= 768) {
+                closeBtn.style.display = 'block';
+            } else {
+                closeBtn.style.display = 'none';
+                document.getElementById('sidebar').classList.remove('active');
+            }
+        }
+        window.addEventListener('resize', updateMobileLayout);
+        updateMobileLayout();
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Socket Logic
         const socket = io();
         let currentUser = null;
         let tempAvatarData = null;
+
+        // Auto-login on page load if saved credentials exist
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSession = localStorage.getItem('ys_user_session');
+            if (savedSession) {
+                try {
+                    const credentials = JSON.parse(savedSession);
+                    socket.emit('authenticate', { username: credentials.username, password: credentials.password, action: 'login' });
+                } catch(e) {
+                    localStorage.removeItem('ys_user_session');
+                }
+            }
+        });
 
         function auth(action) {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             if (!username || !password) return alert('Enter credentials.');
             socket.emit('authenticate', { username, password, action });
+            // Save login details to localStorage
+            localStorage.setItem('ys_user_session', JSON.stringify({ username, password }));
+        }
+
+        function logout() {
+            localStorage.removeItem('ys_user_session');
+            window.location.reload();
         }
 
         socket.on('auth_error', (msg) => {
             document.getElementById('auth-err').innerText = msg;
+            localStorage.removeItem('ys_user_session');
         });
 
         socket.on('auth_success', (user) => {
             currentUser = user;
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('my-username').innerText = user.username;
+            document.getElementById('my-display-name').innerText = user.displayName || user.username;
+            document.getElementById('my-username').innerText = `@${user.username}`;
             document.getElementById('my-avatar').src = user.avatar || DEFAULT_AVATAR;
         });
 
-        socket.on('user_joined', (data) => appendSysMsg(`🟢 ${data.username} joined the chat`));
-        socket.on('user_left', (data) => appendSysMsg(`🔴 ${data.username} left the chat`));
+        socket.on('user_joined', (data) => appendSysMsg(`🟢 ${data.displayName || data.username} joined the chat`));
+        socket.on('user_left', (data) => appendSysMsg(`🔴 ${data.displayName || data.username} left the chat`));
         socket.on('system_message', (txt) => appendSysMsg(`⚠️ ${txt}`));
 
         socket.on('receive_message', (data) => {
@@ -214,12 +284,13 @@
             let deleteBtn = canDelete ? `<button class="delete-btn" onclick="deleteMessage('${data.msgId}')">[Remove]</button>` : '';
 
             let userAvatar = data.avatar || DEFAULT_AVATAR;
+            let shownName = data.displayName || data.username;
 
             let content = `
                 <img class="avatar-img" src="${userAvatar}">
                 <div class="msg-body">
                     <div class="author">
-                        <span>${data.username} ${ownerBadge} <span style="font-weight:normal; font-size:0.75em; color:#b15eff">${data.time}</span></span>
+                        <span>${shownName} ${ownerBadge} <span style="font-weight:normal; font-size:0.75em; color:#b15eff">${data.time}</span></span>
                         ${deleteBtn}
                     </div>`;
             
@@ -264,11 +335,12 @@
                 }
                 
                 let avatarSrc = u.avatar || DEFAULT_AVATAR;
+                let shownName = u.displayName || u.username;
 
                 item.innerHTML = `
                     <div class="user-item-left">
                         <img class="avatar-img" style="width:26px; height:26px;" src="${avatarSrc}">
-                        <span>${u.username}</span>
+                        <span>${shownName}</span>
                     </div> 
                     ${kickBtn}`;
                 list.appendChild(item);
@@ -277,13 +349,14 @@
 
         socket.on('kicked', () => {
             alert('Kicked by RS FLAGS Owner.');
-            window.location.reload();
+            logout();
         });
 
-        // PROFILE EDITOR FUNCTIONS
+        // Profile Editor Modal Logic
         function openProfileModal() {
             document.getElementById('profile-modal').style.display = 'flex';
             document.getElementById('preview-avatar').src = currentUser.avatar || DEFAULT_AVATAR;
+            document.getElementById('edit-display-name').value = currentUser.displayName || currentUser.username;
             tempAvatarData = currentUser.avatar;
         }
 
@@ -300,11 +373,16 @@
         }
 
         function saveProfile() {
-            if (tempAvatarData) {
-                currentUser.avatar = tempAvatarData;
-                document.getElementById('my-avatar').src = tempAvatarData;
-                socket.emit('update_profile', { avatar: tempAvatarData });
+            const newDisplayName = document.getElementById('edit-display-name').value.trim();
+            if (newDisplayName) {
+                currentUser.displayName = newDisplayName;
+                document.getElementById('my-display-name').innerText = newDisplayName;
             }
+            if (tempAvatarData !== undefined) {
+                currentUser.avatar = tempAvatarData;
+                document.getElementById('my-avatar').src = tempAvatarData || DEFAULT_AVATAR;
+            }
+            socket.emit('update_profile', { displayName: currentUser.displayName, avatar: currentUser.avatar });
             closeProfileModal();
         }
 

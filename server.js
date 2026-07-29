@@ -6,7 +6,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Enable 50MB payload limit for Socket.IO image & profile picture transfers
+// Enable 50MB payload limit for Socket.IO image transfers
 const io = new Server(server, {
     maxHttpBufferSize: 5e7,
     cors: { origin: "*", methods: ["GET", "POST"] }
@@ -21,6 +21,7 @@ const registeredUsers = {};
 registeredUsers['gw.akira'] = { 
     password: 'Akira@ys7', 
     role: 'RS FLAGS / OWNER',
+    displayName: 'Akira (Owner)',
     avatar: '' 
 };
 
@@ -40,30 +41,43 @@ io.on('connection', (socket) => {
             if (registeredUsers[cleanName]) {
                 return socket.emit('auth_error', 'Username already exists. Please log in.');
             }
-            registeredUsers[cleanName] = { password, role: 'MEMBER', avatar: '' };
+            registeredUsers[cleanName] = { 
+                password, 
+                role: 'MEMBER', 
+                displayName: cleanName,
+                avatar: '' 
+            };
         }
 
         const role = registeredUsers[cleanName].role;
+        const displayName = registeredUsers[cleanName].displayName || cleanName;
         const avatar = registeredUsers[cleanName].avatar || '';
         
-        users[socket.id] = { username: cleanName, role, avatar };
+        users[socket.id] = { username: cleanName, role, displayName, avatar };
 
-        socket.emit('auth_success', { username: cleanName, role, avatar });
-        io.emit('user_joined', { username: cleanName, role });
+        socket.emit('auth_success', { username: cleanName, role, displayName, avatar });
+        io.emit('user_joined', { username: cleanName, displayName, role });
         broadcastOnlineUsers();
     });
 
-    // Update Profile Photo / Avatar
-    socket.on('update_profile', ({ avatar }) => {
+    // Update Profile (Display Name & Avatar)
+    socket.on('update_profile', ({ displayName, avatar }) => {
         const user = users[socket.id];
         if (!user) return;
 
-        user.avatar = avatar;
-        if (registeredUsers[user.username]) {
-            registeredUsers[user.username].avatar = avatar;
+        if (displayName && displayName.trim().length > 0) {
+            user.displayName = displayName.trim();
+        }
+        if (avatar !== undefined) {
+            user.avatar = avatar;
         }
 
-        socket.emit('profile_updated', { avatar });
+        if (registeredUsers[user.username]) {
+            registeredUsers[user.username].displayName = user.displayName;
+            registeredUsers[user.username].avatar = user.avatar;
+        }
+
+        socket.emit('profile_updated', { displayName: user.displayName, avatar: user.avatar });
         broadcastOnlineUsers();
     });
 
@@ -77,6 +91,7 @@ io.on('connection', (socket) => {
         io.emit('receive_message', {
             msgId,
             username: user.username,
+            displayName: user.displayName,
             role: user.role,
             avatar: user.avatar,
             text: data.text || '',
@@ -85,7 +100,7 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Delete message
+    // Delete message for all users
     socket.on('delete_message', (msgId) => {
         io.emit('message_deleted', msgId);
     });
@@ -107,15 +122,20 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         if (users[socket.id]) {
-            const username = users[socket.id].username;
+            const displayName = users[socket.id].displayName || users[socket.id].username;
             delete users[socket.id];
-            io.emit('user_left', { username });
+            io.emit('user_left', { displayName });
             broadcastOnlineUsers();
         }
     });
 
     function broadcastOnlineUsers() {
-        const onlineList = Object.values(users).map(u => ({ username: u.username, role: u.role, avatar: u.avatar }));
+        const onlineList = Object.values(users).map(u => ({ 
+            username: u.username, 
+            displayName: u.displayName, 
+            role: u.role, 
+            avatar: u.avatar 
+        }));
         io.emit('update_online_list', onlineList);
     }
 });
