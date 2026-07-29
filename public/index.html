@@ -24,9 +24,9 @@
         .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; }
         .badge-owner { color: #ff4757; font-size: 0.75em; border: 1px solid #ff4757; padding: 1px 4px; border-radius: 4px; margin-left: 5px; }
         
-        /* Multiple Image Grid Styling */
+        /* Photo Grid Gallery */
         .image-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
-        .image-gallery img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+        .image-gallery img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid #3d3d3d; }
 
         .sys-msg { text-align: center; color: #8e8e8e; font-size: 0.85em; margin: 5px 0; }
         
@@ -61,11 +61,10 @@
         <div id="chat-main">
             <div id="messages"></div>
             <div id="input-area">
-                <!-- Added "multiple" attribute here -->
                 <input type="file" id="img-input" accept="image/*" multiple style="display: none;">
                 <button type="button" onclick="document.getElementById('img-input').click()" style="background: #262626;">🖼️ Photos</button>
                 <input type="text" id="msg-input" placeholder="Message..." onkeydown="if(event.key === 'Enter') sendMsg()">
-                <button onclick="sendMsg()">Send</button>
+                <button id="send-btn" onclick="sendMsg()">Send</button>
             </div>
         </div>
     </div>
@@ -113,7 +112,6 @@
             
             if (data.text) content += `<div>${data.text}</div>`;
             
-            // Render multiple photos gallery if images exist
             if (data.images && data.images.length > 0) {
                 content += `<div class="image-gallery">`;
                 data.images.forEach(imgBase64 => {
@@ -147,28 +145,57 @@
             window.location.reload();
         });
 
+        // Helper function to compress large images
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const maxWidth = 800;
+                        const scaleSize = maxWidth / img.width;
+                        
+                        if (scaleSize < 1) {
+                            canvas.width = maxWidth;
+                            canvas.height = img.height * scaleSize;
+                        } else {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                        }
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7)); // 70% quality compression
+                    };
+                };
+            });
+        }
+
         async function sendMsg() {
             const textInput = document.getElementById('msg-input');
             const fileInput = document.getElementById('img-input');
+            const sendBtn = document.getElementById('send-btn');
             const text = textInput.value.trim();
             const files = Array.from(fileInput.files);
 
             if (!text && files.length === 0) return;
 
-            const imagePromises = files.map(file => {
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.readAsDataURL(file);
-                });
-            });
+            sendBtn.disabled = true;
+            sendBtn.innerText = 'Sending...';
 
+            // Compress all selected images
+            const imagePromises = files.map(file => compressImage(file));
             const images = await Promise.all(imagePromises);
 
             socket.emit('send_message', { text, images });
             
             textInput.value = '';
             fileInput.value = '';
+            sendBtn.disabled = false;
+            sendBtn.innerText = 'Send';
         }
 
         function kick(username) {
