@@ -27,7 +27,8 @@
         .image-gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
         .img-card { display: flex; flex-direction: column; align-items: center; background: #181818; padding: 6px; border-radius: 8px; border: 1px solid #333; }
         .img-card img { max-width: 220px; max-height: 220px; object-fit: cover; border-radius: 6px; cursor: pointer; }
-        .download-btn { color: #3797f0; font-size: 0.8em; text-decoration: none; margin-top: 6px; font-weight: bold; cursor: pointer; background: transparent; border: none; }
+        .download-btn { color: #3797f0; font-size: 0.8em; margin-top: 6px; font-weight: bold; cursor: pointer; background: transparent; border: none; padding: 4px; }
+        .download-btn:hover { text-decoration: underline; }
 
         .sys-msg { text-align: center; color: #8e8e8e; font-size: 0.85em; margin: 5px 0; }
         
@@ -119,7 +120,7 @@
                     content += `
                         <div class="img-card">
                             <img src="${dataUrl}" onclick="window.open('${dataUrl}')">
-                            <button class="download-btn" onclick="downloadImage('${dataUrl}', 'photo_${idx + 1}.jpg')">⬇️ Download</button>
+                            <button class="download-btn" onclick="downloadBlob('${dataUrl}', 'photo_${Date.now()}_${idx + 1}.jpg')">⬇️ Download JPG</button>
                         </div>`;
                 });
                 content += `</div>`;
@@ -181,13 +182,30 @@
             sendBtn.innerText = 'Send';
         }
 
-        function downloadImage(dataUrl, filename) {
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        // Direct Browser Blob Downloader (bypass server network fetch)
+        function downloadBlob(dataUrl, filename) {
+            try {
+                const arr = dataUrl.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                const blob = new Blob([u8arr], { type: mime });
+                const blobUrl = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            } catch(e) {
+                console.error("Download failed:", e);
+            }
         }
 
         function kick(username) {
