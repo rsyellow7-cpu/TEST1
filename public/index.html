@@ -20,10 +20,14 @@
         #chat-main { flex: 1; display: flex; flex-direction: column; }
         
         #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg { background: #262626; padding: 10px 14px; border-radius: 8px; max-width: 75%; word-break: break-word; }
+        .msg { background: #262626; padding: 10px 14px; border-radius: 8px; max-width: 80%; word-break: break-word; }
         .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; }
         .badge-owner { color: #ff4757; font-size: 0.75em; border: 1px solid #ff4757; padding: 1px 4px; border-radius: 4px; margin-left: 5px; }
-        .msg img { max-width: 100%; border-radius: 8px; margin-top: 8px; }
+        
+        /* Multiple Image Grid Styling */
+        .image-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
+        .image-gallery img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+
         .sys-msg { text-align: center; color: #8e8e8e; font-size: 0.85em; margin: 5px 0; }
         
         #input-area { display: flex; padding: 15px; background: #181818; gap: 10px; align-items: center; }
@@ -36,7 +40,6 @@
 </head>
 <body>
 
-    <!-- AUTHENTICATION SCREEN -->
     <div id="auth-screen">
         <h2>RS FLAGS Chat</h2>
         <p style="font-size: 0.8em; color: #8e8e8e; margin-bottom: 15px;">Enter credentials to join room</p>
@@ -49,7 +52,6 @@
         <p id="auth-err" style="color: #ff4757; font-size: 0.8em; margin-top: 10px;"></p>
     </div>
 
-    <!-- MAIN CHAT INTERFACE -->
     <div id="chat-screen">
         <div id="sidebar">
             <h3 style="margin-bottom: 15px; font-size: 1.1em; color: #3797f0;">RS FLAGS</h3>
@@ -59,8 +61,9 @@
         <div id="chat-main">
             <div id="messages"></div>
             <div id="input-area">
-                <input type="file" id="img-input" accept="image/*" style="display: none;">
-                <button type="button" onclick="document.getElementById('img-input').click()" style="background: #262626;">📷</button>
+                <!-- Added "multiple" attribute here -->
+                <input type="file" id="img-input" accept="image/*" multiple style="display: none;">
+                <button type="button" onclick="document.getElementById('img-input').click()" style="background: #262626;">🖼️ Photos</button>
                 <input type="text" id="msg-input" placeholder="Message..." onkeydown="if(event.key === 'Enter') sendMsg()">
                 <button onclick="sendMsg()">Send</button>
             </div>
@@ -109,7 +112,15 @@
             let content = `<div class="author" style="color:${data.role === 'RS FLAGS / OWNER' ? '#ff4757' : '#3797f0'}">${data.username} ${ownerBadge} <span style="font-weight:normal; font-size:0.7em; color:#8e8e8e">${data.time}</span></div>`;
             
             if (data.text) content += `<div>${data.text}</div>`;
-            if (data.image) content += `<img src="${data.image}">`;
+            
+            // Render multiple photos gallery if images exist
+            if (data.images && data.images.length > 0) {
+                content += `<div class="image-gallery">`;
+                data.images.forEach(imgBase64 => {
+                    content += `<img src="${imgBase64}" onclick="window.open('${imgBase64}')">`;
+                });
+                content += `</div>`;
+            }
 
             div.innerHTML = content;
             msgBox.appendChild(div);
@@ -136,26 +147,28 @@
             window.location.reload();
         });
 
-        function sendMsg() {
+        async function sendMsg() {
             const textInput = document.getElementById('msg-input');
             const fileInput = document.getElementById('img-input');
             const text = textInput.value.trim();
-            const file = fileInput.files[0];
+            const files = Array.from(fileInput.files);
 
-            if (!text && !file) return;
+            if (!text && files.length === 0) return;
 
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    socket.emit('send_message', { text, image: e.target.result });
-                    fileInput.value = '';
-                    textInput.value = '';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                socket.emit('send_message', { text });
-                textInput.value = '';
-            }
+            const imagePromises = files.map(file => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            });
+
+            const images = await Promise.all(imagePromises);
+
+            socket.emit('send_message', { text, images });
+            
+            textInput.value = '';
+            fileInput.value = '';
         }
 
         function kick(username) {
