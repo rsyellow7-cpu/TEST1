@@ -105,6 +105,9 @@
 <body>
     <canvas id="matrix-bg"></canvas>
 
+    <!-- Hidden audio element strictly dedicated to WebRTC audio output -->
+    <audio id="remote-audio" autoplay playsinline style="display:none;"></audio>
+
     <!-- Auth Screen -->
     <div id="auth-screen">
         <div class="brand-logo" style="justify-content: center;"><span class="logo-y">Y</span><span class="logo-s">S</span></div>
@@ -157,7 +160,6 @@
 
             <div id="messages"></div>
 
-            <!-- Preview bar for multiple images -->
             <div id="img-preview-bar"></div>
             
             <div id="input-area">
@@ -221,7 +223,7 @@
             <label style="font-size: 0.75em; color: #b15eff; display: block; text-align: left;">Bio:</label>
             <input type="text" id="edit-bio" class="modal-input" placeholder="Write a short bio...">
 
-            <div style="display:flex; justify-content:space-around; gap:10px;">
+            <div style="display:flex; justify-style:space-around; gap:10px;">
                 <button class="edit-prof-btn" style="flex:1; padding:8px;" onclick="saveProfile()">Save</button>
                 <button class="edit-prof-btn" style="flex:1; padding:8px;" onclick="closeProfileModal()">Cancel</button>
             </div>
@@ -231,7 +233,7 @@
     <script>
         const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b15eff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
-        // Matrix Background Effect
+        // Matrix Background
         const canvas = document.getElementById('matrix-bg');
         const ctx = canvas.getContext('2d');
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -259,9 +261,8 @@
         const socket = io();
         let currentUser = null;
         let tempAvatarData = null;
-        let pendingImages = []; // Stores Base64 images to send
+        let pendingImages = [];
 
-        // Auto Load Saved Info
         window.addEventListener('DOMContentLoaded', () => {
             const savedInfo = localStorage.getItem('ys_user_creds');
             if (savedInfo) {
@@ -274,7 +275,6 @@
             }
         });
 
-        // Socket Reconnect handling for mobile devices
         socket.on('connect', () => {
             const savedInfo = localStorage.getItem('ys_user_creds');
             if (savedInfo) {
@@ -385,7 +385,7 @@
             if (newRole) socket.emit('assign_role', { targetUsername, newRole });
         }
 
-        // --- FAST CLIENT-SIDE IMAGE COMPRESSION ENGINE ---
+        // --- FAST CLIENT-SIDE IMAGE COMPRESSION ---
         function compressImage(file, maxWidth = 1000, quality = 0.7) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -418,12 +418,10 @@
             const files = Array.from(event.target.files);
             if (!files.length) return;
 
-            // Compress all selected images in parallel
             const compressed = await Promise.all(files.map(f => compressImage(f)));
             pendingImages.push(...compressed);
-            
             renderImagePreviewBar();
-            event.target.value = ''; // reset file input
+            event.target.value = '';
         }
 
         function renderImagePreviewBar() {
@@ -448,7 +446,7 @@
             renderImagePreviewBar();
         }
 
-        // --- RECEIVE & RENDER MESSAGES ---
+        // --- MESSAGES ---
         socket.on('receive_message', (data) => {
             const msgBox = document.getElementById('messages');
             const div = document.createElement('div');
@@ -490,7 +488,7 @@
             }
         }
 
-        // --- PROFILE EDIT MODAL ---
+        // --- PROFILE EDIT ---
         function openProfileModal() {
             document.getElementById('profile-modal').style.display = 'flex';
             document.getElementById('preview-avatar').src = currentUser.avatar || DEFAULT_AVATAR;
@@ -516,7 +514,7 @@
             closeProfileModal();
         }
 
-        // --- WEBRTC CALL ENGINE ---
+        // --- WEBRTC AUDIO & VIDEO CALL ENGINE ---
         let peerConnection = null;
         let localStream = null;
         let callTargetUsername = null;
@@ -529,7 +527,8 @@
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' }
             ] 
         };
 
@@ -545,7 +544,7 @@
                 if (isVideoCall) {
                     const localVid = document.getElementById('local-video');
                     localVid.srcObject = localStream;
-                    localVid.play();
+                    localVid.play().catch(e => console.error(e));
                 }
 
                 createPeerConnection();
@@ -556,7 +555,7 @@
 
                 socket.emit('call_user', { targetUsername, signalData: offer, isVideo: isVideoCall });
             } catch (err) {
-                alert("Microphone/Camera permission denied or non-HTTPS URL.");
+                alert("Microphone/Camera permission denied or site not on HTTPS.");
                 closeCallUI();
             }
         }
@@ -577,7 +576,7 @@
             document.getElementById('incoming-modal').style.display = 'none';
 
             const callerName = document.getElementById('incoming-caller-name').innerText;
-            const callerAvatar = document.getElementById('incoming-avatar-img').src;
+            const callerAvatar = document.getElementById('incoming-caller-avatar-img') ? document.getElementById('incoming-caller-avatar-img').src : DEFAULT_AVATAR;
             const callerBio = document.getElementById('incoming-caller-bio').innerText;
 
             openActiveCallUI(callerName, callerAvatar, callerBio, 'Connecting...');
@@ -588,7 +587,7 @@
                 if (isVideoCall) {
                     const localVid = document.getElementById('local-video');
                     localVid.srcObject = localStream;
-                    localVid.play();
+                    localVid.play().catch(e => console.error(e));
                 }
 
                 createPeerConnection();
@@ -638,10 +637,20 @@
                 }
             };
 
+            // Audio Stream Receiver (handles both Voice and Video calls)
             peerConnection.ontrack = (event) => {
-                const remoteVid = document.getElementById('remote-video');
-                remoteVid.srcObject = event.streams[0];
-                remoteVid.play().catch(e => console.error(e));
+                const stream = event.streams[0];
+                
+                // Force remote audio element playback
+                const remoteAudio = document.getElementById('remote-audio');
+                remoteAudio.srcObject = stream;
+                remoteAudio.play().catch(err => console.log("Audio autoplay forced:", err));
+
+                if (isVideoCall) {
+                    const remoteVid = document.getElementById('remote-video');
+                    remoteVid.srcObject = stream;
+                    remoteVid.play().catch(err => console.log("Video autoplay:", err));
+                }
             };
         }
 
@@ -721,6 +730,7 @@
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
             }
+            document.getElementById('remote-audio').srcObject = null;
             document.getElementById('remote-video').srcObject = null;
             document.getElementById('local-video').srcObject = null;
             callTargetUsername = null;
