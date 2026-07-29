@@ -24,9 +24,12 @@
         .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; }
         .badge-owner { color: #ff4757; font-size: 0.75em; border: 1px solid #ff4757; padding: 1px 4px; border-radius: 4px; margin-left: 5px; }
         
-        /* Multiple Image Gallery */
-        .image-gallery { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-        .image-gallery img { max-width: 200px; max-height: 200px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid #3d3d3d; }
+        /* Image gallery and download styling */
+        .image-gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+        .img-card { display: flex; flex-direction: column; align-items: center; background: #181818; padding: 6px; border-radius: 8px; border: 1px solid #333; }
+        .img-card img { max-width: 200px; max-height: 200px; object-fit: cover; border-radius: 6px; }
+        .download-link { color: #3797f0; font-size: 0.75em; text-decoration: none; margin-top: 6px; font-weight: bold; }
+        .download-link:hover { text-decoration: underline; }
 
         .sys-msg { text-align: center; color: #8e8e8e; font-size: 0.85em; margin: 5px 0; }
         
@@ -114,8 +117,12 @@
             
             if (data.images && data.images.length > 0) {
                 content += `<div class="image-gallery">`;
-                data.images.forEach(imgData => {
-                    content += `<img src="${imgData}" onclick="window.open('${imgData}')">`;
+                data.images.forEach(url => {
+                    content += `
+                        <div class="img-card">
+                            <img src="${url}" onclick="window.open('${url}')">
+                            <a class="download-link" href="${url}" download>⬇️ Download</a>
+                        </div>`;
                 });
                 content += `</div>`;
             }
@@ -145,7 +152,6 @@
             window.location.reload();
         });
 
-        // Fast canvas resize function
         function processImage(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -155,7 +161,7 @@
                     img.src = e.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const maxDim = 800;
+                        const maxDim = 1000;
                         let width = img.width;
                         let height = img.height;
 
@@ -171,7 +177,7 @@
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                        resolve(canvas.toDataURL('image/jpeg', 0.8));
                     };
                 };
             });

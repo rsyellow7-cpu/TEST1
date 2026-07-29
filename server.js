@@ -2,27 +2,27 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
 
-// CORS enabled for cross-platform access (web/mobile)
+// Ensure public/uploads folder exists on the server
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const io = new Server(server, {
-    maxHttpBufferSize: 1e7, // 10 MB for image uploads
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+    maxHttpBufferSize: 1e8, // 100 MB buffer
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// Serve frontend static files from 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory data structures
-const users = {}; // socket.id -> { username, role }
-const registeredUsers = {}; // username -> { password, role }
+const users = {};
+const registeredUsers = {};
 
-// Default Admin / Owner credentials
 registeredUsers['gw.akira'] = { password: 'Akira@ys7', role: 'RS FLAGS / OWNER' };
 
 io.on('connection', (socket) => {
@@ -57,11 +57,33 @@ io.on('connection', (socket) => {
         if (!user) return;
 
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const savedImageUrls = [];
+
+        // Save incoming Base64 images as physical files on server disk
+        if (data.images && Array.isArray(data.images)) {
+            data.images.forEach((base64Str) => {
+                try {
+                    const matches = base64Str.match(/^data:image\/([a-zA-Z]*);base64,(.+)$/);
+                    if (matches) {
+                        const ext = matches[1] || 'jpeg';
+                        const buffer = Buffer.from(matches[2], 'base64');
+                        const fileName = `img_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+                        const filePath = path.join(uploadDir, fileName);
+
+                        fs.writeFileSync(filePath, buffer);
+                        savedImageUrls.push(`/uploads/${fileName}`);
+                    }
+                } catch (err) {
+                    console.error('Error saving image file:', err);
+                }
+            });
+        }
+
         io.emit('receive_message', {
             username: user.username,
             role: user.role,
             text: data.text || '',
-            image: data.image || null,
+            images: savedImageUrls, // Send public URLs to clients
             time
         });
     });
