@@ -14,8 +14,9 @@
         #auth-screen input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; font-size: 16px; }
         #auth-screen button { width: 48%; padding: 12px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; font-size: 15px; }
 
-        #chat-screen { display: none; z-index: 10; width: 95%; max-width: 1000px; height: 90vh; height: 90dvh; background: rgba(15, 6, 28, 0.92); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 35px rgba(255, 94, 209, 0.25); position: relative; }
-        #sidebar { width: 320px; background: rgba(22, 10, 40, 0.95); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; z-index: 20; }
+        /* --- EXPANDED CHAT FRAME --- */
+        #chat-screen { display: none; z-index: 10; width: 98vw; max-width: 1400px; height: 96vh; height: 96dvh; background: rgba(15, 6, 28, 0.94); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 45px rgba(255, 94, 209, 0.3); position: relative; }
+        #sidebar { width: 340px; background: rgba(22, 10, 40, 0.95); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; z-index: 20; flex-shrink: 0; }
         .brand-logo { font-size: 1.4em; font-weight: 900; letter-spacing: 2px; text-align: center; border-bottom: 1px dashed #b15eff; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .logo-y { color: #b15eff; text-shadow: 0 0 12px #b15eff; }
         .logo-s { color: #ff5ed1; text-shadow: 0 0 12px #ff5ed1; }
@@ -31,20 +32,26 @@
         .bio-text { font-size: 0.75em; color: #d0a3ff; font-style: italic; margin-top: 4px; border-top: 1px dashed #3c125d; padding-top: 4px; word-break: break-word; }
 
         #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 4, 18, 0.75); width: 100%; height: 100%; position: relative; }
-        #messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg { background: rgba(35, 14, 61, 0.75); padding: 10px 12px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 85%; word-break: break-word; color: #ffffff; display: flex; gap: 10px; }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        
+        /* MESSAGE STYLES WITH DELETE ACTION */
+        .msg { background: rgba(35, 14, 61, 0.75); padding: 12px 14px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 80%; word-break: break-word; color: #ffffff; display: flex; gap: 12px; position: relative; transition: all 0.2s ease; }
+        .msg:hover .msg-delete-btn { display: flex; }
         .msg-body { flex: 1; min-width: 0; }
-        .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 2px; color: #ff5ed1; display: flex; justify-content: space-between; align-items: center; }
+        .msg .author { font-weight: bold; font-size: 0.9em; margin-bottom: 4px; color: #ff5ed1; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        
+        .msg-delete-btn { display: none; background: rgba(255, 42, 133, 0.2); border: 1px solid #ff2a85; color: #ff2a85; border-radius: 4px; font-size: 0.7em; padding: 2px 6px; cursor: pointer; align-items: center; justify-content: center; }
+        .msg-delete-btn:hover { background: #ff2a85; color: #ffffff; }
 
         .user-item { padding: 8px 0; border-bottom: 1px solid #2a0845; font-size: 0.85em; color: #d0a3ff; display: flex; flex-direction: column; gap: 4px; }
         .owner-actions { display: flex; gap: 4px; margin-top: 4px; }
         .btn-mini { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
         .btn-mini-danger { border-color: #ff2a85; color: #ff2a85; }
 
-        .msg-images-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-top: 8px; max-width: 380px; }
-        .chat-img-thumb { width: 100%; height: 110px; object-fit: cover; border-radius: 6px; border: 1px solid #b15eff; cursor: pointer; }
-        .chat-media-video { width: 100%; max-width: 320px; border-radius: 8px; border: 1px solid #b15eff; margin-top: 8px; }
-        .chat-media-audio { width: 100%; max-width: 280px; margin-top: 8px; outline: none; }
+        .msg-images-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 8px; max-width: 480px; }
+        .chat-img-thumb { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; border: 1px solid #b15eff; cursor: pointer; }
+        .chat-media-video { width: 100%; max-width: 420px; border-radius: 8px; border: 1px solid #b15eff; margin-top: 8px; }
+        .chat-media-audio { width: 100%; max-width: 340px; margin-top: 8px; outline: none; }
 
         #media-preview-bar { display: none; padding: 8px 12px; background: rgba(22, 10, 40, 0.95); border-top: 1px solid #3c125d; gap: 10px; overflow-x: auto; align-items: center; }
         .preview-thumb-box { position: relative; width: 55px; height: 55px; flex-shrink: 0; }
@@ -52,9 +59,9 @@
         .preview-remove-btn { position: absolute; top: -6px; right: -6px; background: #ff2a85; color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .video-tag-preview { background: #ff5ed1; color: #000; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.8em; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
-        #input-area { display: flex; padding: 12px; background: rgba(22, 10, 40, 0.95); gap: 6px; align-items: center; border-top: 1px solid #3c125d; }
-        #input-area input[type="text"] { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #b15eff; background: #0a0412; color: #ffffff; outline: none; font-size: 15px; }
-        .action-icon-btn { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; border-radius: 50%; width: 38px; height: 38px; font-size: 1.1em; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        #input-area { display: flex; padding: 14px; background: rgba(22, 10, 40, 0.95); gap: 10px; align-items: center; border-top: 1px solid #3c125d; }
+        #input-area input[type="text"] { flex: 1; padding: 12px 16px; border-radius: 20px; border: 1px solid #b15eff; background: #0a0412; color: #ffffff; outline: none; font-size: 16px; }
+        .action-icon-btn { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; border-radius: 50%; width: 42px; height: 42px; font-size: 1.2em; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
         .action-icon-btn.recording { background: #ff2a85; color: #ffffff; border-color: #ff2a85; animation: pulse 1s infinite; }
 
         /* --- DP EFFECT STYLES --- */
@@ -148,7 +155,7 @@
                 <button id="mic-btn" class="action-icon-btn" onclick="toggleVoiceRecording()" title="Record Voice Message">🎤</button>
 
                 <input type="text" id="msg-input" placeholder="Type a message..." onkeydown="if(event.key === 'Enter') sendMsg()">
-                <button style="background: #2a0845; border: 1px solid #ff5ed1; padding: 10px 16px; color: #ffffff; border-radius: 20px; cursor: pointer; font-weight: bold;" onclick="sendMsg()">Send</button>
+                <button style="background: #2a0845; border: 1px solid #ff5ed1; padding: 12px 20px; color: #ffffff; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 15px;" onclick="sendMsg()">Send</button>
             </div>
         </div>
     </div>
@@ -518,11 +525,27 @@
             renderMediaPreviewBar();
         }
 
+        // --- REMOVE / DELETE MESSAGE ---
+        function deleteMsg(msgId, authorUsername) {
+            if (confirm("Remove this message?")) {
+                socket.emit('delete_message', { messageId: msgId, authorUsername });
+            }
+        }
+
+        socket.on('message_deleted', (msgId) => {
+            const el = document.getElementById(msgId);
+            if (el) {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 200);
+            }
+        });
+
         // --- RECEIVE & RENDER MESSAGES ---
         socket.on('receive_message', (data) => {
             const msgBox = document.getElementById('messages');
             const div = document.createElement('div');
             div.className = 'msg';
+            div.id = data.id;
 
             let mediaContent = '';
 
@@ -542,12 +565,21 @@
 
             let roleBadgeClass = data.role === 'OWNER' ? 'role-badge role-owner' : 'role-badge';
 
+            // Show Delete button if current user is author or OWNER
+            let deleteBtnHtml = '';
+            if (currentUser && (currentUser.username === data.username || currentUser.role === 'OWNER')) {
+                deleteBtnHtml = `<button class="msg-delete-btn" onclick="deleteMsg('${data.id}', '${data.username}')" title="Delete Message">🗑️ Remove</button>`;
+            }
+
             div.innerHTML = `
                 <img class="avatar-img ${data.dpEffect || 'dp-effect-none'}" src="${data.avatar || DEFAULT_AVATAR}">
                 <div class="msg-body">
                     <div class="author">
                         <span>${data.displayName} <span class="${roleBadgeClass}">${data.role}</span></span>
-                        <span style="font-weight:normal; font-size:0.75em; color:#b15eff">${data.time}</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            ${deleteBtnHtml}
+                            <span style="font-weight:normal; font-size:0.75em; color:#b15eff">${data.time}</span>
+                        </div>
                     </div>
                     ${data.text ? `<div>${data.text}</div>` : ''}
                     ${mediaContent}

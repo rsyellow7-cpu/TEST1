@@ -12,7 +12,7 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory user database
+// In-memory user database & message history
 const users = new Map();
 
 function getOnlineUsers() {
@@ -150,14 +150,17 @@ io.on('connection', (socket) => {
         }
     });
 
+    // SEND MESSAGE
     socket.on('send_message', (data) => {
         if (!currentUsername) return;
         const user = users.get(currentUsername);
         if (!user) return;
 
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
+        const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
         io.emit('receive_message', {
+            id: messageId,
             username: currentUsername,
             displayName: user.displayName || currentUsername,
             avatar: user.avatar || '',
@@ -170,6 +173,18 @@ io.on('connection', (socket) => {
             video: data.video || null,
             time: timeStr
         });
+    });
+
+    // DELETE MESSAGE
+    socket.on('delete_message', ({ messageId, authorUsername }) => {
+        if (!currentUsername) return;
+        const user = users.get(currentUsername);
+        if (!user) return;
+
+        // Allow deletion if the user is the author OR if the user is the OWNER
+        if (currentUsername === authorUsername || user.role === 'OWNER') {
+            io.emit('message_deleted', messageId);
+        }
     });
 
     socket.on('disconnect', () => {
