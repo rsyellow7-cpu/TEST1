@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RS FLAGS Chat</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+        body { background: #121212; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        
+        #auth-screen { background: #1e1e1e; padding: 30px; border-radius: 12px; width: 320px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        #auth-screen input { width: 100%; padding: 10px; margin: 8px 0; border: none; border-radius: 6px; background: #2d2d2d; color: #fff; }
+        #auth-screen button { width: 48%; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-login { background: #3797f0; color: #fff; }
+        .btn-reg { background: #262626; color: #fff; }
+        
+        #chat-screen { display: none; width: 90%; max-width: 900px; height: 85vh; background: #1e1e1e; border-radius: 12px; overflow: hidden; flex-direction: row; }
+        #sidebar { width: 250px; background: #181818; border-right: 1px solid #2d2d2d; padding: 15px; display: flex; flex-direction: column; }
+        #chat-main { flex: 1; display: flex; flex-direction: column; }
+        
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg { background: #262626; padding: 10px 14px; border-radius: 8px; max-width: 75%; word-break: break-word; }
+        .msg .author { font-weight: bold; font-size: 0.85em; margin-bottom: 4px; }
+        .badge-owner { color: #ff4757; font-size: 0.75em; border: 1px solid #ff4757; padding: 1px 4px; border-radius: 4px; margin-left: 5px; }
+        .msg img { max-width: 100%; border-radius: 8px; margin-top: 8px; }
+        .sys-msg { text-align: center; color: #8e8e8e; font-size: 0.85em; margin: 5px 0; }
+        
+        #input-area { display: flex; padding: 15px; background: #181818; gap: 10px; align-items: center; }
+        #input-area input[type="text"] { flex: 1; padding: 10px; border-radius: 20px; border: none; background: #262626; color: #fff; }
+        #input-area button { background: #3797f0; border: none; padding: 10px 18px; color: #fff; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #262626; font-size: 0.9em; }
+        .kick-btn { background: #ff4757; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTHENTICATION SCREEN -->
+    <div id="auth-screen">
+        <h2>RS FLAGS Chat</h2>
+        <p style="font-size: 0.8em; color: #8e8e8e; margin-bottom: 15px;">Enter credentials to join room</p>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <div>
+            <button class="btn-login" onclick="auth('login')">Log In</button>
+            <button class="btn-reg" onclick="auth('register')">Create Pass</button>
+        </div>
+        <p id="auth-err" style="color: #ff4757; font-size: 0.8em; margin-top: 10px;"></p>
+    </div>
+
+    <!-- MAIN CHAT INTERFACE -->
+    <div id="chat-screen">
+        <div id="sidebar">
+            <h3 style="margin-bottom: 15px; font-size: 1.1em; color: #3797f0;">RS FLAGS</h3>
+            <p style="font-size: 0.8em; color: #8e8e8e; margin-bottom: 10px;">ONLINE USERS</p>
+            <div id="online-list" style="flex: 1; overflow-y: auto;"></div>
+        </div>
+        <div id="chat-main">
+            <div id="messages"></div>
+            <div id="input-area">
+                <input type="file" id="img-input" accept="image/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('img-input').click()" style="background: #262626;">📷</button>
+                <input type="text" id="msg-input" placeholder="Message..." onkeydown="if(event.key === 'Enter') sendMsg()">
+                <button onclick="sendMsg()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentUser = null;
+
+        function auth(action) {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            if (!username || !password) return alert('Please enter both username and password.');
+            socket.emit('authenticate', { username, password, action });
+        }
+
+        socket.on('auth_error', (msg) => {
+            document.getElementById('auth-err').innerText = msg;
+        });
+
+        socket.on('auth_success', (user) => {
+            currentUser = user;
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
+        });
+
+        socket.on('user_joined', (data) => {
+            appendSysMsg(`🟢 ${data.username} joined the chat`);
+        });
+
+        socket.on('user_left', (data) => {
+            appendSysMsg(`🔴 ${data.username} left the chat`);
+        });
+
+        socket.on('system_message', (txt) => {
+            appendSysMsg(`⚠️ ${txt}`);
+        });
+
+        socket.on('receive_message', (data) => {
+            const msgBox = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'msg';
+            
+            let ownerBadge = data.role === 'RS FLAGS / OWNER' ? `<span class="badge-owner">RS FLAGS OWNER</span>` : '';
+            let content = `<div class="author" style="color:${data.role === 'RS FLAGS / OWNER' ? '#ff4757' : '#3797f0'}">${data.username} ${ownerBadge} <span style="font-weight:normal; font-size:0.7em; color:#8e8e8e">${data.time}</span></div>`;
+            
+            if (data.text) content += `<div>${data.text}</div>`;
+            if (data.image) content += `<img src="${data.image}">`;
+
+            div.innerHTML = content;
+            msgBox.appendChild(div);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        });
+
+        socket.on('update_online_list', (users) => {
+            const list = document.getElementById('online-list');
+            list.innerHTML = '';
+            users.forEach(u => {
+                const item = document.createElement('div');
+                item.className = 'user-item';
+                let kickBtn = '';
+                if (currentUser && currentUser.role === 'RS FLAGS / OWNER' && u.username !== currentUser.username) {
+                    kickBtn = `<button class="kick-btn" onclick="kick('${u.username}')">Kick</button>`;
+                }
+                item.innerHTML = `<span>${u.username}</span> ${kickBtn}`;
+                list.appendChild(item);
+            });
+        });
+
+        socket.on('kicked', () => {
+            alert('You were kicked from the chat by RS FLAGS Owner.');
+            window.location.reload();
+        });
+
+        function sendMsg() {
+            const textInput = document.getElementById('msg-input');
+            const fileInput = document.getElementById('img-input');
+            const text = textInput.value.trim();
+            const file = fileInput.files[0];
+
+            if (!text && !file) return;
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    socket.emit('send_message', { text, image: e.target.result });
+                    fileInput.value = '';
+                    textInput.value = '';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                socket.emit('send_message', { text });
+                textInput.value = '';
+            }
+        }
+
+        function kick(username) {
+            socket.emit('kick_user', username);
+        }
+
+        function appendSysMsg(txt) {
+            const msgBox = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'sys-msg';
+            div.innerText = txt;
+            msgBox.appendChild(div);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
