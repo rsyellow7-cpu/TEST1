@@ -12,7 +12,7 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory user database & message history
+// In-memory user database
 const users = new Map();
 
 function getOnlineUsers() {
@@ -25,7 +25,8 @@ function getOnlineUsers() {
                 avatar: data.avatar || '',
                 bio: data.bio || '',
                 role: data.role || 'MEMBER',
-                dpEffect: data.dpEffect || 'dp-effect-none'
+                dpEffect: data.dpEffect || 'dp-effect-none',
+                fontStyle: data.fontStyle || 'font-normal'
             });
         }
     });
@@ -55,6 +56,7 @@ io.on('connection', (socket) => {
                 bio: 'Hey there! I am using RS FLAGS Chat.', 
                 role, 
                 dpEffect: 'dp-effect-none',
+                fontStyle: 'font-normal',
                 socketId: socket.id 
             });
             currentUsername = cleanUser;
@@ -68,6 +70,7 @@ io.on('connection', (socket) => {
                     bio: 'Server Owner', 
                     role: 'OWNER', 
                     dpEffect: 'dp-effect-none',
+                    fontStyle: 'font-normal',
                     socketId: socket.id 
                 });
                 currentUsername = cleanUser;
@@ -87,13 +90,14 @@ io.on('connection', (socket) => {
             avatar: userData.avatar,
             bio: userData.bio,
             role: userData.role,
-            dpEffect: userData.dpEffect || 'dp-effect-none'
+            dpEffect: userData.dpEffect || 'dp-effect-none',
+            fontStyle: userData.fontStyle || 'font-normal'
         });
 
         io.emit('update_online_list', getOnlineUsers());
     });
 
-    socket.on('update_profile', ({ displayName, avatar, bio, dpEffect }) => {
+    socket.on('update_profile', ({ displayName, avatar, bio, dpEffect, fontStyle }) => {
         if (!currentUsername) return;
         const user = users.get(currentUsername);
         if (user) {
@@ -101,6 +105,7 @@ io.on('connection', (socket) => {
             if (avatar !== undefined) user.avatar = avatar;
             if (bio !== undefined) user.bio = bio;
             if (dpEffect !== undefined) user.dpEffect = dpEffect;
+            if (fontStyle !== undefined) user.fontStyle = fontStyle;
             
             socket.emit('profile_updated', {
                 username: currentUsername,
@@ -108,13 +113,14 @@ io.on('connection', (socket) => {
                 avatar: user.avatar,
                 bio: user.bio,
                 role: user.role,
-                dpEffect: user.dpEffect
+                dpEffect: user.dpEffect,
+                fontStyle: user.fontStyle
             });
             io.emit('update_online_list', getOnlineUsers());
         }
     });
 
-    // OWNER PRIVILEGE: Kick Member
+    // KICK USER
     socket.on('kick_user', (targetUsername) => {
         if (!currentUsername) return;
         const currentUser = users.get(currentUsername);
@@ -133,7 +139,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // OWNER PRIVILEGE: Assign Custom Role
+    // ASSIGN ROLE
     socket.on('assign_role', ({ targetUsername, newRole }) => {
         if (!currentUsername) return;
         const currentUser = users.get(currentUsername);
@@ -150,7 +156,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // SEND MESSAGE
+    // PUBLIC MESSAGE BROADCAST
     socket.on('send_message', (data) => {
         if (!currentUsername) return;
         const user = users.get(currentUsername);
@@ -167,6 +173,7 @@ io.on('connection', (socket) => {
             bio: user.bio || '',
             role: user.role || 'MEMBER',
             dpEffect: user.dpEffect || 'dp-effect-none',
+            fontStyle: user.fontStyle || 'font-normal',
             text: data.text || '',
             images: data.images || [],
             audio: data.audio || null,
@@ -175,15 +182,54 @@ io.on('connection', (socket) => {
         });
     });
 
+    // PRIVATE DIRECT MESSAGE (DM) HANDLER
+    socket.on('send_private_message', (data) => {
+        if (!currentUsername) return;
+        const sender = users.get(currentUsername);
+        const recipient = users.get(data.recipientUsername);
+        
+        if (!sender || !recipient || !recipient.socketId) return;
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messageId = 'dm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+        const payload = {
+            id: messageId,
+            senderUsername: currentUsername,
+            recipientUsername: data.recipientUsername,
+            displayName: sender.displayName || currentUsername,
+            avatar: sender.avatar || '',
+            role: sender.role || 'MEMBER',
+            dpEffect: sender.dpEffect || 'dp-effect-none',
+            fontStyle: sender.fontStyle || 'font-normal',
+            text: data.text || '',
+            images: data.images || [],
+            audio: data.audio || null,
+            video: data.video || null,
+            time: timeStr
+        };
+
+        // Send to recipient and echo back to sender
+        io.to(recipient.socketId).emit('receive_private_message', payload);
+        socket.emit('receive_private_message', payload);
+    });
+
     // DELETE MESSAGE
-    socket.on('delete_message', ({ messageId, authorUsername }) => {
+    socket.on('delete_message', ({ messageId, authorUsername, isPrivate, recipientUsername }) => {
         if (!currentUsername) return;
         const user = users.get(currentUsername);
         if (!user) return;
 
-        // Allow deletion if the user is the author OR if the user is the OWNER
         if (currentUsername === authorUsername || user.role === 'OWNER') {
-            io.emit('message_deleted', messageId);
+            if (isPrivate && recipientUsername) {
+                const target = users.get(recipientUsername);
+                if (target && target.socketId) {
+                    io.to(target.socketId).emit('message_deleted', messageId);
+                }
+                socket.emit('message_deleted', messageId);
+            } else {
+                io.emit('message_deleted', messageId);
+            }
         }
     });
 

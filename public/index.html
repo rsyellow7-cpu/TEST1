@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RS FLAGS - Chat App</title>
     <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Orbitron:wght@700&family=Press+Start+2P&family=Sacramento&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', 'Consolas', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { background: #0a0412; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
-        #matrix-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.35; pointer-events: none; }
+        body { background: #06020c; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
+        #matrix-bg, #spiders-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        #matrix-bg { opacity: 0.25; }
+        #spiders-bg { z-index: 1; }
 
         #auth-screen { z-index: 10; background: rgba(18, 8, 33, 0.95); padding: 30px 20px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; border: 1px solid #b15eff; box-shadow: 0 0 25px rgba(177, 94, 255, 0.35); }
         #auth-screen input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ff5ed1; border-radius: 6px; background: #0a0412; color: #fff; outline: none; font-size: 16px; }
         #auth-screen button { width: 48%; padding: 12px; border: 1px solid #b15eff; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; background: #2a0845; color: #ffffff; text-shadow: 0 0 5px #ff5ed1; font-size: 15px; }
 
-        /* --- EXPANDED CHAT FRAME --- */
         #chat-screen { display: none; z-index: 10; width: 98vw; max-width: 1400px; height: 96vh; height: 96dvh; background: rgba(15, 6, 28, 0.94); border: 1px solid #b15eff; border-radius: 12px; overflow: hidden; flex-direction: row; box-shadow: 0 0 45px rgba(255, 94, 209, 0.3); position: relative; }
         #sidebar { width: 340px; background: rgba(22, 10, 40, 0.95); border-right: 1px solid #3c125d; padding: 15px; display: flex; flex-direction: column; z-index: 20; flex-shrink: 0; }
         .brand-logo { font-size: 1.4em; font-weight: 900; letter-spacing: 2px; text-align: center; border-bottom: 1px dashed #b15eff; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -31,10 +33,20 @@
 
         .bio-text { font-size: 0.75em; color: #d0a3ff; font-style: italic; margin-top: 4px; border-top: 1px dashed #3c125d; padding-top: 4px; word-break: break-word; }
 
+        /* CHAT TABS FOR PRIVATE & GLOBAL CHATS */
+        #chat-tabs-bar { display: flex; background: #120624; border-bottom: 1px solid #3c125d; padding: 6px 10px 0 10px; gap: 6px; overflow-x: auto; }
+        .chat-tab { padding: 8px 16px; background: #1c0b36; border: 1px solid #3c125d; border-bottom: none; border-radius: 8px 8px 0 0; color: #d0a3ff; font-size: 0.85em; cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .chat-tab.active { background: #2a0845; border-color: #b15eff; color: #ffffff; font-weight: bold; box-shadow: 0 -2px 10px rgba(177, 94, 255, 0.3); }
+        .chat-tab .unread-dot { width: 8px; height: 8px; background: #ff5ed1; border-radius: 50%; display: none; }
+        .chat-tab.has-unread .unread-dot { display: inline-block; }
+        .tab-close { font-size: 0.9em; opacity: 0.6; cursor: pointer; }
+        .tab-close:hover { opacity: 1; color: #ff2a85; }
+
         #chat-main { flex: 1; display: flex; flex-direction: column; background: rgba(10, 4, 18, 0.75); width: 100%; height: 100%; position: relative; }
-        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-        
-        /* MESSAGE STYLES WITH DELETE ACTION */
+        .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: none; flex-direction: column; gap: 14px; }
+        .messages-container.active { display: flex; }
+
+        /* MESSAGES & DELETION */
         .msg { background: rgba(35, 14, 61, 0.75); padding: 12px 14px; border-radius: 8px; border: 1px solid #5a1b8e; max-width: 80%; word-break: break-word; color: #ffffff; display: flex; gap: 12px; position: relative; transition: all 0.2s ease; }
         .msg:hover .msg-delete-btn { display: flex; }
         .msg-body { flex: 1; min-width: 0; }
@@ -43,7 +55,8 @@
         .msg-delete-btn { display: none; background: rgba(255, 42, 133, 0.2); border: 1px solid #ff2a85; color: #ff2a85; border-radius: 4px; font-size: 0.7em; padding: 2px 6px; cursor: pointer; align-items: center; justify-content: center; }
         .msg-delete-btn:hover { background: #ff2a85; color: #ffffff; }
 
-        .user-item { padding: 8px 0; border-bottom: 1px solid #2a0845; font-size: 0.85em; color: #d0a3ff; display: flex; flex-direction: column; gap: 4px; }
+        .user-item { padding: 8px 10px; border-bottom: 1px solid #2a0845; font-size: 0.85em; color: #d0a3ff; display: flex; flex-direction: column; gap: 4px; cursor: pointer; border-radius: 6px; transition: background 0.2s; }
+        .user-item:hover { background: rgba(177, 94, 255, 0.15); }
         .owner-actions { display: flex; gap: 4px; margin-top: 4px; }
         .btn-mini { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
         .btn-mini-danger { border-color: #ff2a85; color: #ff2a85; }
@@ -64,21 +77,34 @@
         .action-icon-btn { background: #2a0845; border: 1px solid #b15eff; color: #ff5ed1; border-radius: 50%; width: 42px; height: 42px; font-size: 1.2em; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
         .action-icon-btn.recording { background: #ff2a85; color: #ffffff; border-color: #ff2a85; animation: pulse 1s infinite; }
 
+        /* --- FONT STYLE OPTIONS --- */
+        .font-normal { font-family: inherit; }
+        .font-cyber { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; color: #00ffff !important; text-shadow: 0 0 8px #00ffff; }
+        .font-horror { font-family: 'Creepster', cursive; font-size: 1.15em; color: #ff0055 !important; letter-spacing: 1.5px; }
+        .font-retro { font-family: 'Press Start 2P', monospace; font-size: 0.75em; color: #00ff66 !important; }
+        .font-glow { font-family: 'Sacramento', cursive; font-size: 1.3em; color: #ffd700 !important; text-shadow: 0 0 10px #ffd700; }
+
         /* --- DP EFFECT STYLES --- */
         .dp-effect-none { border-radius: 50%; border: 1px solid #ff5ed1; }
         .dp-effect-neon { border-radius: 50%; border: 2px solid #00ffff; box-shadow: 0 0 12px #00ffff, 0 0 20px #ff00ff; }
         .dp-effect-gold { border-radius: 50%; border: 2px solid #ffd700; box-shadow: 0 0 15px #ffd700; }
         .dp-effect-pulse { border-radius: 50%; border: 2px solid #ff5ed1; animation: dpPulse 1.5s infinite alternate; }
         .dp-effect-glitch { border-radius: 20%; border: 2px solid #ff2a85; box-shadow: -3px 0 #00ffff, 3px 0 #ff00ff; }
+        .dp-effect-dragon { border-radius: 50%; border: 2px dashed #ff4500; box-shadow: 0 0 15px #ff4500, 0 0 30px #ff8c00; animation: dragonRotate 4s linear infinite; }
+        .dp-effect-portal { border-radius: 50%; border: 2px solid #9400d3; box-shadow: inset 0 0 15px #8a2be2, 0 0 25px #4b0082; animation: dpPulse 1s infinite alternate; }
 
         @keyframes dpPulse {
             0% { box-shadow: 0 0 4px #ff5ed1; transform: scale(0.98); }
             100% { box-shadow: 0 0 18px #ff5ed1, 0 0 28px #b15eff; transform: scale(1.05); }
         }
+        @keyframes dragonRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-        /* --- PROFILE MODAL STYLES --- */
+        /* PROFILE MODAL */
         #profile-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.8); z-index: 99; justify-content: center; align-items: center; }
-        .modal-content { background: #160a28; border: 1px solid #b15eff; border-radius: 12px; width: 90%; max-width: 400px; padding: 20px; box-shadow: 0 0 30px rgba(177, 94, 255, 0.4); display: flex; flex-direction: column; gap: 12px; }
+        .modal-content { background: #160a28; border: 1px solid #b15eff; border-radius: 12px; width: 90%; max-width: 420px; padding: 20px; box-shadow: 0 0 30px rgba(177, 94, 255, 0.4); display: flex; flex-direction: column; gap: 12px; }
         .modal-content h3 { color: #ff5ed1; border-bottom: 1px dashed #b15eff; padding-bottom: 8px; text-align: center; }
         .modal-field { display: flex; flex-direction: column; gap: 4px; }
         .modal-field label { font-size: 0.8em; color: #b15eff; font-weight: bold; }
@@ -88,16 +114,11 @@
         .modal-btns button { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #b15eff; font-weight: bold; cursor: pointer; }
         .btn-save { background: #2a0845; color: #fff; }
         .btn-cancel { background: #120624; color: #ff5ed1; border-color: #ff5ed1 !important; }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
     </style>
 </head>
 <body>
     <canvas id="matrix-bg"></canvas>
+    <canvas id="spiders-bg"></canvas>
 
     <!-- AUTHENTICATION SCREEN -->
     <div id="auth-screen">
@@ -124,7 +145,7 @@
                         <img id="my-avatar" class="avatar-img dp-effect-none" src="">
                     </div>
                     <div style="flex: 1; min-width: 0;">
-                        <div id="my-display-name" style="font-weight:bold; font-size:0.9em; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Guest</div>
+                        <div id="my-display-name" class="font-normal" style="font-weight:bold; font-size:0.9em; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Guest</div>
                         <div id="my-username" style="font-size:0.75em; color:#b15eff;">@guest</div>
                         <span id="my-role" class="role-badge">MEMBER</span>
                     </div>
@@ -134,14 +155,23 @@
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 5px 0;">
-                <p style="font-size: 0.8em; color: #b15eff;">ONLINE USERS</p>
+                <p style="font-size: 0.8em; color: #b15eff;">ONLINE USERS (Click to DM)</p>
                 <button class="btn-mini-danger btn-mini" onclick="logout()">Logout</button>
             </div>
             <div id="online-list" style="flex: 1; overflow-y: auto;"></div>
         </div>
 
         <div id="chat-main">
-            <div id="messages"></div>
+            <!-- TABS BAR FOR MULTIPLE CHAT BOXES -->
+            <div id="chat-tabs-bar">
+                <div class="chat-tab active" id="tab-global" onclick="switchTab('global')">
+                    🌐 Global Chat
+                    <span class="unread-dot"></span>
+                </div>
+            </div>
+
+            <!-- CHAT MESSAGES CONTAINERS -->
+            <div id="messages-global" class="messages-container active"></div>
 
             <div id="media-preview-bar"></div>
             
@@ -171,18 +201,31 @@
             </div>
 
             <div class="modal-field">
+                <label>Display Name Font Style</label>
+                <select id="edit-font-style">
+                    <option value="font-normal">Default Standard</option>
+                    <option value="font-cyber">⚡ Cyberpunk Neon (Orbitron)</option>
+                    <option value="font-horror">🩸 Gothic Horror (Creepster)</option>
+                    <option value="font-retro">👾 8-Bit Arcade (Press Start)</option>
+                    <option value="font-glow">✨ Handwritten Cursive (Sacramento)</option>
+                </select>
+            </div>
+
+            <div class="modal-field">
                 <label>Avatar / DP Image</label>
                 <input type="file" id="edit-dp-file" accept="image/*" onchange="handleDpUpload(event)">
             </div>
 
             <div class="modal-field">
-                <label>DP Frame / Glow Effect</label>
+                <label>DP Frame / Visual Effect</label>
                 <select id="edit-dp-effect">
                     <option value="dp-effect-none">Classic Circle (None)</option>
                     <option value="dp-effect-neon">Cyber Neon Glow</option>
                     <option value="dp-effect-gold">Gold Aura</option>
                     <option value="dp-effect-pulse">Pulse Wave</option>
                     <option value="dp-effect-glitch">Cyber Glitch Box</option>
+                    <option value="dp-effect-dragon">🔥 Dragon Flame Ring</option>
+                    <option value="dp-effect-portal">🔮 Void Black Hole Portal</option>
                 </select>
             </div>
 
@@ -201,13 +244,13 @@
     <script>
         const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b15eff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
-        // Canvas Background Animation
+        // Matrix Background Animation
         const canvas = document.getElementById('matrix-bg');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         let drops = Array(Math.floor(canvas.width / 15)).fill(1);
         function drawMatrix() {
-            ctx.fillStyle = 'rgba(10, 4, 18, 0.08)';
+            ctx.fillStyle = 'rgba(6, 2, 12, 0.08)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.font = 'bold 15px monospace';
             ctx.fillStyle = '#ff5ed1';
@@ -219,8 +262,64 @@
         }
         setInterval(drawMatrix, 33);
 
+        // --- SPIDERS BACKGROUND ANIMATION ---
+        const sCanvas = document.getElementById('spiders-bg');
+        const sCtx = sCanvas.getContext('2d');
+        sCanvas.width = window.innerWidth; sCanvas.height = window.innerHeight;
+
+        class Spider {
+            constructor() {
+                this.x = Math.random() * sCanvas.width;
+                this.y = Math.random() * sCanvas.height;
+                this.size = Math.random() * 6 + 6;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.legAngle = 0;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.legAngle += 0.2;
+
+                if (this.x < 0 || this.x > sCanvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > sCanvas.height) this.vy *= -1;
+            }
+            draw() {
+                sCtx.strokeStyle = 'rgba(177, 94, 255, 0.15)';
+                sCtx.beginPath();
+                sCtx.moveTo(this.x, 0);
+                sCtx.lineTo(this.x, this.y);
+                sCtx.stroke();
+
+                sCtx.fillStyle = '#ff5ed1';
+                sCtx.beginPath();
+                sCtx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+                sCtx.fill();
+
+                sCtx.strokeStyle = '#b15eff';
+                sCtx.lineWidth = 1;
+                for (let i = 0; i < 8; i++) {
+                    let angle = (i * Math.PI / 4) + Math.sin(this.legAngle) * 0.3;
+                    sCtx.beginPath();
+                    sCtx.moveTo(this.x, this.y);
+                    sCtx.lineTo(this.x + Math.cos(angle) * (this.size + 4), this.y + Math.sin(angle) * (this.size + 4));
+                    sCtx.stroke();
+                }
+            }
+        }
+
+        const spiders = Array.from({ length: 12 }, () => new Spider());
+        function animateSpiders() {
+            sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+            spiders.forEach(s => { s.update(); s.draw(); });
+            requestAnimationFrame(animateSpiders);
+        }
+        animateSpiders();
+
+        // --- GLOBAL CHAT STATE & SOCKETS ---
         const socket = io();
         let currentUser = null;
+        let activeTab = 'global';
         let pendingImages = [];
         let pendingVideoBase64 = null;
         let pendingAvatarBase64 = null;
@@ -228,7 +327,6 @@
         let audioChunks = [];
         let isRecording = false;
 
-        // --- AUTO-LOGIN / SAVE CREDS ---
         window.addEventListener('load', () => {
             const savedUser = localStorage.getItem('rs_chat_user');
             const savedPass = localStorage.getItem('rs_chat_pass');
@@ -267,7 +365,10 @@
         });
 
         function updateMyProfileDisplay(user) {
-            document.getElementById('my-display-name').innerText = user.displayName;
+            const nameEl = document.getElementById('my-display-name');
+            nameEl.innerText = user.displayName;
+            nameEl.className = user.fontStyle || 'font-normal';
+
             document.getElementById('my-username').innerText = `@${user.username}`;
             
             const avatarImg = document.getElementById('my-avatar');
@@ -286,13 +387,58 @@
             logout();
         });
 
-        socket.on('role_updated', (newRole) => {
-            if (currentUser) currentUser.role = newRole;
-            const roleBadge = document.getElementById('my-role');
-            roleBadge.innerText = newRole;
-            if (newRole === 'OWNER') roleBadge.classList.add('role-owner');
-            else roleBadge.classList.remove('role-owner');
-        });
+        // --- MULTI-TAB SEPARATE CHAT BOXES ---
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.messages-container').forEach(c => c.classList.remove('active'));
+
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if (targetTab) {
+                targetTab.classList.add('active');
+                targetTab.classList.remove('has-unread');
+            }
+
+            const targetContainer = document.getElementById(`messages-${tabId}`);
+            if (targetContainer) {
+                targetContainer.classList.add('active');
+                targetContainer.scrollTop = targetContainer.scrollHeight;
+            }
+        }
+
+        function openPrivateChat(username, displayName) {
+            if (username === currentUser.username) return;
+
+            const tabId = `dm_${username}`;
+            if (!document.getElementById(`tab-${tabId}`)) {
+                // Create Tab Header
+                const tabsBar = document.getElementById('chat-tabs-bar');
+                const tab = document.createElement('div');
+                tab.className = 'chat-tab';
+                tab.id = `tab-${tabId}`;
+                tab.onclick = () => switchTab(tabId);
+                tab.innerHTML = `💬 ${displayName} <span class="unread-dot"></span> <span class="tab-close" onclick="closeTab(event, '${tabId}')">✕</span>`;
+                tabsBar.appendChild(tab);
+
+                // Create Messages Container
+                const main = document.getElementById('chat-main');
+                const container = document.createElement('div');
+                container.className = 'messages-container';
+                container.id = `messages-${tabId}`;
+                main.insertBefore(container, document.getElementById('media-preview-bar'));
+            }
+
+            switchTab(tabId);
+        }
+
+        function closeTab(event, tabId) {
+            event.stopPropagation();
+            const tab = document.getElementById(`tab-${tabId}`);
+            const container = document.getElementById(`messages-${tabId}`);
+            if (tab) tab.remove();
+            if (container) container.remove();
+            if (activeTab === tabId) switchTab('global');
+        }
 
         // --- PROFILE MODAL FUNCTIONS ---
         function openProfileModal() {
@@ -300,6 +446,7 @@
             document.getElementById('edit-display-name').value = currentUser.displayName || '';
             document.getElementById('edit-bio').value = currentUser.bio || '';
             document.getElementById('edit-dp-effect').value = currentUser.dpEffect || 'dp-effect-none';
+            document.getElementById('edit-font-style').value = currentUser.fontStyle || 'font-normal';
             pendingAvatarBase64 = null;
             document.getElementById('profile-modal').style.display = 'flex';
         }
@@ -320,16 +467,16 @@
             const newName = document.getElementById('edit-display-name').value.trim();
             const newBio = document.getElementById('edit-bio').value.trim();
             const newDpEffect = document.getElementById('edit-dp-effect').value;
+            const newFontStyle = document.getElementById('edit-font-style').value;
 
             const payload = {
                 displayName: newName || currentUser.username,
                 bio: newBio,
-                dpEffect: newDpEffect
+                dpEffect: newDpEffect,
+                fontStyle: newFontStyle
             };
 
-            if (pendingAvatarBase64) {
-                payload.avatar = pendingAvatarBase64;
-            }
+            if (pendingAvatarBase64) payload.avatar = pendingAvatarBase64;
 
             socket.emit('update_profile', payload);
             closeProfileModal();
@@ -341,11 +488,12 @@
                 currentUser.avatar = data.avatar;
                 currentUser.bio = data.bio;
                 currentUser.dpEffect = data.dpEffect;
+                currentUser.fontStyle = data.fontStyle;
                 updateMyProfileDisplay(currentUser);
             }
         });
 
-        // --- ONLINE LIST & OWNER CONTROLS ---
+        // --- ONLINE LIST ---
         socket.on('update_online_list', (usersList) => {
             const list = document.getElementById('online-list');
             list.innerHTML = '';
@@ -354,13 +502,15 @@
                 
                 const div = document.createElement('div');
                 div.className = 'user-item';
+                div.onclick = () => openPrivateChat(u.username, u.displayName || u.username);
 
                 let roleBadgeClass = u.role === 'OWNER' ? 'role-badge role-owner' : 'role-badge';
+                let fontClass = u.fontStyle || 'font-normal';
 
                 let ownerButtons = '';
                 if (currentUser && currentUser.role === 'OWNER' && u.role !== 'OWNER') {
                     ownerButtons = `
-                    <div class="owner-actions">
+                    <div class="owner-actions" onclick="event.stopPropagation()">
                         <button class="btn-mini" onclick="assignRole('${u.username}')">Give Role</button>
                         <button class="btn-mini btn-mini-danger" onclick="kickUser('${u.username}')">Kick</button>
                     </div>`;
@@ -370,7 +520,7 @@
                     <div style="display:flex; align-items:center; gap:8px;">
                         <img class="avatar-img ${u.dpEffect || 'dp-effect-none'}" style="width:28px; height:28px;" src="${u.avatar || DEFAULT_AVATAR}">
                         <div>
-                            <strong>${u.displayName || u.username}</strong> <span class="${roleBadgeClass}">${u.role}</span>
+                            <strong class="${fontClass}">${u.displayName || u.username}</strong> <span class="${roleBadgeClass}">${u.role}</span>
                         </div>
                     </div>
                     <div style="font-size:0.75em; color:#a080c0; padding-left:36px;">${u.bio || 'No bio set'}</div>
@@ -393,7 +543,7 @@
             }
         }
 
-        // --- IMAGE SELECTION & COMPRESSION ---
+        // --- COMPRESSION & MEDIA HANDLERS ---
         function compressImage(file, maxWidth = 1000, quality = 0.7) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -403,14 +553,12 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
+                        let width = img.width, height = img.height;
                         if (width > maxWidth) {
                             height = Math.round((height * maxWidth) / width);
                             width = maxWidth;
                         }
-                        canvas.width = width;
-                        canvas.height = height;
+                        canvas.width = width; canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         resolve(canvas.toDataURL('image/jpeg', quality));
@@ -428,15 +576,10 @@
             event.target.value = '';
         }
 
-        // --- VIDEO SELECTION ---
         function handleVideoSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
-
-            if (file.size > 30 * 1024 * 1024) {
-                alert("Please select a video file under 30MB.");
-                return;
-            }
+            if (file.size > 30 * 1024 * 1024) return alert("Select video under 30MB.");
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -447,36 +590,25 @@
             event.target.value = '';
         }
 
-        // --- VOICE RECORDING ---
         async function toggleVoiceRecording() {
             const micBtn = document.getElementById('mic-btn');
-
             if (!isRecording) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
-
-                    mediaRecorder.ondataavailable = (e) => {
-                        if (e.data.size > 0) audioChunks.push(e.data);
-                    };
-
+                    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
                     mediaRecorder.onstop = () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         const reader = new FileReader();
                         reader.readAsDataURL(audioBlob);
-                        reader.onloadend = () => {
-                            socket.emit('send_message', { audio: reader.result });
-                        };
+                        reader.onloadend = () => sendMsgWithAudio(reader.result);
                         stream.getTracks().forEach(track => track.stop());
                     };
-
                     mediaRecorder.start();
                     isRecording = true;
                     micBtn.classList.add('recording');
-                } catch (err) {
-                    alert("Unable to access microphone.");
-                }
+                } catch (err) { alert("Microphone access denied."); }
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
@@ -484,51 +616,29 @@
             }
         }
 
-        // --- MEDIA PREVIEW BAR ---
         function renderMediaPreviewBar() {
             const bar = document.getElementById('media-preview-bar');
             if (pendingImages.length === 0 && !pendingVideoBase64) {
-                bar.style.display = 'none';
-                bar.innerHTML = '';
-                return;
+                bar.style.display = 'none'; bar.innerHTML = ''; return;
             }
             bar.style.display = 'flex';
-            
             let html = '';
-            
             pendingImages.forEach((imgSrc, idx) => {
-                html += `
-                <div class="preview-thumb-box">
-                    <img src="${imgSrc}">
-                    <button class="preview-remove-btn" onclick="removePendingImg(${idx})">✕</button>
-                </div>`;
+                html += `<div class="preview-thumb-box"><img src="${imgSrc}"><button class="preview-remove-btn" onclick="removePendingImg(${idx})">✕</button></div>`;
             });
-
             if (pendingVideoBase64) {
-                html += `
-                <div class="video-tag-preview">
-                    🎥 Video Attached 
-                    <span style="cursor:pointer; margin-left:6px;" onclick="clearPendingVideo()">✕</span>
-                </div>`;
+                html += `<div class="video-tag-preview">🎥 Video Attached <span style="cursor:pointer;" onclick="clearPendingVideo()">✕</span></div>`;
             }
-
             bar.innerHTML = html;
         }
 
-        function removePendingImg(idx) {
-            pendingImages.splice(idx, 1);
-            renderMediaPreviewBar();
-        }
+        function removePendingImg(idx) { pendingImages.splice(idx, 1); renderMediaPreviewBar(); }
+        function clearPendingVideo() { pendingVideoBase64 = null; renderMediaPreviewBar(); }
 
-        function clearPendingVideo() {
-            pendingVideoBase64 = null;
-            renderMediaPreviewBar();
-        }
-
-        // --- REMOVE / DELETE MESSAGE ---
-        function deleteMsg(msgId, authorUsername) {
+        // --- MESSAGE RENDERING & DELETION ---
+        function deleteMsg(msgId, authorUsername, isPrivate, recipientUsername) {
             if (confirm("Remove this message?")) {
-                socket.emit('delete_message', { messageId: msgId, authorUsername });
+                socket.emit('delete_message', { messageId: msgId, authorUsername, isPrivate, recipientUsername });
             }
         }
 
@@ -540,42 +650,34 @@
             }
         });
 
-        // --- RECEIVE & RENDER MESSAGES ---
-        socket.on('receive_message', (data) => {
-            const msgBox = document.getElementById('messages');
+        function renderMessage(data, targetContainerId, isPrivate = false, recipientUsername = '') {
+            const msgBox = document.getElementById(targetContainerId);
+            if (!msgBox) return;
+
             const div = document.createElement('div');
             div.className = 'msg';
             div.id = data.id;
 
             let mediaContent = '';
-
             if (data.images && data.images.length > 0) {
-                mediaContent += `<div class="msg-images-grid">` +
-                    data.images.map(imgSrc => `<img class="chat-img-thumb" src="${imgSrc}" onclick="window.open(this.src)">`).join('') +
-                `</div>`;
+                mediaContent += `<div class="msg-images-grid">` + data.images.map(imgSrc => `<img class="chat-img-thumb" src="${imgSrc}" onclick="window.open(this.src)">`).join('') + `</div>`;
             }
-
-            if (data.audio) {
-                mediaContent += `<div><audio class="chat-media-audio" src="${data.audio}" controls></audio></div>`;
-            }
-
-            if (data.video) {
-                mediaContent += `<div><video class="chat-media-video" src="${data.video}" controls></video></div>`;
-            }
+            if (data.audio) mediaContent += `<div><audio class="chat-media-audio" src="${data.audio}" controls></audio></div>`;
+            if (data.video) mediaContent += `<div><video class="chat-media-video" src="${data.video}" controls></video></div>`;
 
             let roleBadgeClass = data.role === 'OWNER' ? 'role-badge role-owner' : 'role-badge';
+            let fontClass = data.fontStyle || 'font-normal';
 
-            // Show Delete button if current user is author or OWNER
             let deleteBtnHtml = '';
-            if (currentUser && (currentUser.username === data.username || currentUser.role === 'OWNER')) {
-                deleteBtnHtml = `<button class="msg-delete-btn" onclick="deleteMsg('${data.id}', '${data.username}')" title="Delete Message">🗑️ Remove</button>`;
+            if (currentUser && (currentUser.username === (data.username || data.senderUsername) || currentUser.role === 'OWNER')) {
+                deleteBtnHtml = `<button class="msg-delete-btn" onclick="deleteMsg('${data.id}', '${data.username || data.senderUsername}', ${isPrivate}, '${recipientUsername}')">🗑️ Remove</button>`;
             }
 
             div.innerHTML = `
                 <img class="avatar-img ${data.dpEffect || 'dp-effect-none'}" src="${data.avatar || DEFAULT_AVATAR}">
                 <div class="msg-body">
                     <div class="author">
-                        <span>${data.displayName} <span class="${roleBadgeClass}">${data.role}</span></span>
+                        <span class="${fontClass}">${data.displayName} <span class="${roleBadgeClass}">${data.role}</span></span>
                         <div style="display:flex; align-items:center; gap:8px;">
                             ${deleteBtnHtml}
                             <span style="font-weight:normal; font-size:0.75em; color:#b15eff">${data.time}</span>
@@ -587,19 +689,53 @@
 
             msgBox.appendChild(div);
             msgBox.scrollTop = msgBox.scrollHeight;
+        }
+
+        // --- RECEIVE MESSAGES ---
+        socket.on('receive_message', (data) => {
+            renderMessage(data, 'messages-global');
+            if (activeTab !== 'global') {
+                const tab = document.getElementById('tab-global');
+                if (tab) tab.classList.add('has-unread');
+            }
+        });
+
+        socket.on('receive_private_message', (data) => {
+            const isMeSender = data.senderUsername === currentUser.username;
+            const otherUser = isMeSender ? data.recipientUsername : data.senderUsername;
+            const otherDisplayName = isMeSender ? data.recipientUsername : data.displayName;
+
+            openPrivateChat(otherUser, otherDisplayName);
+            const tabId = `dm_${otherUser}`;
+            renderMessage(data, `messages-${tabId}`, true, otherUser);
+
+            if (activeTab !== tabId) {
+                const tab = document.getElementById(`tab-${tabId}`);
+                if (tab) tab.classList.add('has-unread');
+            }
         });
 
         // --- SEND MESSAGE ---
+        function sendMsgWithAudio(audioBase64) {
+            if (activeTab === 'global') {
+                socket.emit('send_message', { audio: audioBase64 });
+            } else {
+                const recipientUsername = activeTab.replace('dm_', '');
+                socket.emit('send_private_message', { recipientUsername, audio: audioBase64 });
+            }
+        }
+
         function sendMsg() {
             const input = document.getElementById('msg-input');
             const text = input.value.trim();
 
             if (text || pendingImages.length > 0 || pendingVideoBase64) {
-                socket.emit('send_message', { 
-                    text: text,
-                    images: pendingImages,
-                    video: pendingVideoBase64 
-                });
+                if (activeTab === 'global') {
+                    socket.emit('send_message', { text, images: pendingImages, video: pendingVideoBase64 });
+                } else {
+                    const recipientUsername = activeTab.replace('dm_', '');
+                    socket.emit('send_private_message', { recipientUsername, text, images: pendingImages, video: pendingVideoBase64 });
+                }
 
                 input.value = '';
                 pendingImages = [];
