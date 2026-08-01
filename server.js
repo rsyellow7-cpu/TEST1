@@ -120,7 +120,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // KICK USER
     socket.on('kick_user', (targetUsername) => {
         if (!currentUsername) return;
         const currentUser = users.get(currentUsername);
@@ -139,7 +138,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ASSIGN ROLE
     socket.on('assign_role', ({ targetUsername, newRole }) => {
         if (!currentUsername) return;
         const currentUser = users.get(currentUsername);
@@ -156,7 +154,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // PUBLIC MESSAGE BROADCAST
     socket.on('send_message', (data) => {
         if (!currentUsername) return;
         const user = users.get(currentUsername);
@@ -178,11 +175,11 @@ io.on('connection', (socket) => {
             images: data.images || [],
             audio: data.audio || null,
             video: data.video || null,
+            spiderSticker: data.spiderSticker || null,
             time: timeStr
         });
     });
 
-    // PRIVATE DIRECT MESSAGE (DM) HANDLER
     socket.on('send_private_message', (data) => {
         if (!currentUsername) return;
         const sender = users.get(currentUsername);
@@ -206,15 +203,14 @@ io.on('connection', (socket) => {
             images: data.images || [],
             audio: data.audio || null,
             video: data.video || null,
+            spiderSticker: data.spiderSticker || null,
             time: timeStr
         };
 
-        // Send to recipient and echo back to sender
         io.to(recipient.socketId).emit('receive_private_message', payload);
         socket.emit('receive_private_message', payload);
     });
 
-    // DELETE MESSAGE
     socket.on('delete_message', ({ messageId, authorUsername, isPrivate, recipientUsername }) => {
         if (!currentUsername) return;
         const user = users.get(currentUsername);
